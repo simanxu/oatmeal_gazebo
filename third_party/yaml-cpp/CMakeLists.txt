@@ -1,0 +1,71 @@
+add_library(yaml-cpp STATIC
+  src/binary.cpp
+  src/collectionstack.h
+  src/convert.cpp
+  src/depthguard.cpp
+  src/directives.cpp
+  src/directives.h
+  src/emit.cpp
+  src/emitfromevents.cpp
+  src/emitter.cpp
+  src/emitterstate.cpp
+  src/emitterstate.h
+  src/emitterutils.cpp
+  src/emitterutils.h
+  src/exceptions.cpp
+  src/exp.cpp
+  src/exp.h
+  src/indentation.h
+  src/memory.cpp
+  src/nodebuilder.cpp
+  src/nodebuilder.h
+  src/node.cpp
+  src/node_data.cpp
+  src/nodeevents.cpp
+  src/nodeevents.h
+  src/null.cpp
+  src/ostream_wrapper.cpp
+  src/parse.cpp
+  src/parser.cpp
+  src/ptr_vector.h
+  src/regeximpl.h
+  src/regex_yaml.cpp
+  src/regex_yaml.h
+  src/scanner.cpp
+  src/scanner.h
+  src/scanscalar.cpp
+  src/scanscalar.h
+  src/scantag.cpp
+  src/scantag.h
+  src/scantoken.cpp
+  src/setting.h
+  src/simplekey.cpp
+  src/singledocparser.cpp
+  src/singledocparser.h
+  src/streamcharsource.h
+  src/stream.cpp
+  src/stream.h
+  src/stringsource.h
+  src/tag.cpp
+  src/tag.h
+  src/token.h
+)
+target_include_directories(yaml-cpp
+  PUBLIC
+    ${ROBOTICS_INCLUDE_DIR}
+)
+target_include_directories(yaml-cpp
+  SYSTEM PUBLIC
+    ${ROBOTICS_INCLUDE_DIR}/third_party/yaml-cpp/include
+)
+# Fixes Clang warnings due to ABI. See https://github.com/jbeder/yaml-cpp/pull/815.
+target_compile_options(yaml-cpp
+  PUBLIC
+    -Wno-shadow
+)
+set_target_properties(yaml-cpp
+  PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    VISIBILITY_INLINES_HIDDEN ON
+    CXX_VISIBILITY_PRESET hidden
+)

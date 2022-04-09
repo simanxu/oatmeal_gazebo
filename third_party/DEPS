@@ -1,0 +1,50 @@
+# 'include' and 'exclude' directives are mutually exclusive.
+# The two directives contains a list of whitespace separated glob patterns.
+
+[eigen]
+url = https://gitlab.com/libeigen/eigen.git
+tree = 3.4.0
+include = COPYING.*
+  README*
+  Eigen
+  signature_of_eigen3_matrix_library
+  unsupported/Eigen
+
+[rbdl]
+url = https://github.com/ORB-HD/rbdl-orb.git
+# No important changes since this commit
+commit = 3ce8f5a329fb539f0a1d7ad7204bfc571b1f2d03
+include = include src LICENSE README.md
+
+[qpOASES]
+url = https://github.com/coin-or/qpOASES.git
+# No important changes since this commit
+commit = 72e82386f5968b4027c5f935aa505b94492b48cc
+include = AUTHORS LICENSE README include src
+
+[googletest]
+url = https://github.com/google/googletest.git
+tree = release-1.11.0
+include = googletest/cmake
+  googletest/include/gtest
+  googletest/src
+  googletest/CMakeLists.txt
+  googletest/README.md
+  googlemock/cmake
+  googlemock/include/gmock
+  googlemock/src
+  googlemock/CMakeLists.txt
+  googletest/README.md
+  CMakeLists.txt
+  LICENSE
+  README.md
+
+[yaml-cpp]
+url = https://github.com/jbeder/yaml-cpp.git
+tree = yaml-cpp-0.7.0
+include = include/yaml-cpp/*.h include/yaml-cpp/node src/*.cpp src/*.h LICENSE
+
+[glog]
+url = https://github.com/google/glog.git
+commit = 660352f02bcce8e7b9fa28862c41706e88b05249
+include = cmake/FindUnwind.cmake src AUTHORS COPYING README.rst
