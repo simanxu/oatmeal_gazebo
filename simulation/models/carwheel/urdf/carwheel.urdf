@@ -1,57 +1,19 @@
-Skip to content
-Search or jump to…
-Pull requests
-Issues
-Marketplace
-Explore
-
-@simanxu
-simanxu
-/
-robot_learning
-Public
-Code
-Issues
-Pull requests
-Actions
-Projects
-Wiki
-Security
-Insights
-Settings
-robot_learning/src/carwheel/urdf/carwheel.urdf
-
-simanxu Update
-Latest commit ff8574e on May 18, 2021
- History
- 1 contributor
-Executable File  328 lines (328 sloc)  8.17 KB
-
 <?xml version="1.0" encoding="utf-8"?>
-<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com)
-     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
-     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
 <robot
   name="carwheel">
-  <!-- Add a fixed base of robot -->
-  <!-- <link name="world"/>
-  <joint name="fixed" type="fixed">
-    <parent link="world"/>
-    <child link="body"/>
-  </joint> -->
   <link name="body">
     <inertial>
       <origin
-        xyz="0.0 0.0 1.2"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <mass
         value="3.94900947494756" />
       <inertia
         ixx="0.00773393995430153"
-        ixy="3.9979040259175E-10"
-        ixz="2.54923494802793E-06"
+        ixy="0.0"
+        ixz="0.0"
         iyy="0.0207892752411963"
-        iyz="-9.86488895643997E-11"
+        iyz="0.0"
         izz="0.0275077758026154" />
     </inertial>
     <visual>
@@ -59,13 +21,10 @@ Executable File  328 lines (328 sloc)  8.17 KB
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://carwheel/meshes/body.STL" />
+        <mesh filename="package://oatmeal_gazebo/simulation/models/carwheel/meshes/body.STL" />
       </geometry>
-      <material
-        name="aluminum">
-        <color
-          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      <material name="">
+        <color rgba="1 1 1 1" />
       </material>
     </visual>
     <collision>
@@ -73,8 +32,7 @@ Executable File  328 lines (328 sloc)  8.17 KB
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://carwheel/meshes/body.STL" />
+        <mesh filename="package://oatmeal_gazebo/simulation/models/carwheel/meshes/body.STL" />
       </geometry>
     </collision>
   </link>
@@ -85,15 +43,15 @@ Executable File  328 lines (328 sloc)  8.17 KB
     <inertial>
       <origin
         xyz="0 0 0"
-        rpy="0 0 0" />
+        rpy="1.5707963267948966 0 0" />
       <mass
         value="0.0482548631591392" />
       <inertia
         ixx="1.97040691233152E-05"
-        ixy="1.84339936206638E-38"
-        ixz="-4.06575814682064E-22"
+        ixy="0.0"
+        ixz="0.0"
         iyy="3.86038905273114E-05"
-        iyz="-6.23911102134557E-38"
+        iyz="0.0"
         izz="1.97040691233152E-05" />
     </inertial>
     <visual>
@@ -102,11 +60,10 @@ Executable File  328 lines (328 sloc)  8.17 KB
         rpy="1.5707963267948966 0 0" />
       <geometry>
         <cylinder radius="0.05" length="0.01"/>
+        <!-- <mesh filename="package://oatmeal_gazebo/simulation/models/carwheel/meshes/FR.STL" /> -->
       </geometry>
-      <material
-        name="">
-        <color
-          rgba="1 1 1 1" />
+      <material name="">
+        <color rgba="1 1 1 1" />
       </material>
     </visual>
     <collision>
@@ -114,7 +71,7 @@ Executable File  328 lines (328 sloc)  8.17 KB
         xyz="0 0 0"
         rpy="1.5707963267948966 0 0" />
       <geometry>
-        <cylinder radius="0.05" length="0.01"/>
+        <cylinder radius="0.051" length="0.0001"/>
       </geometry>
     </collision>
   </link>
@@ -134,10 +91,10 @@ Executable File  328 lines (328 sloc)  8.17 KB
     <axis
       xyz="0 1 0" />
     <limit
-      lower="-1000000000"
-      upper="1000000000"
-      effort="0"
-      velocity="0" />
+      lower="-1000000"
+      upper="1000000"
+      effort="30"
+      velocity="20" />
   </joint>
   <gazebo reference="Joint_FR">
     <kp>1.0</kp>
@@ -159,10 +116,10 @@ Executable File  328 lines (328 sloc)  8.17 KB
         value="0.0482548631591393" />
       <inertia
         ixx="1.97040691233152E-05"
-        ixy="1.76324152623343E-38"
-        ixz="-2.82118644197349E-37"
+        ixy="0.0"
+        ixz="0.0"
         iyy="3.86038905273114E-05"
-        iyz="-1.10202595389589E-38"
+        iyz="0.0"
         izz="1.97040691233152E-05" />
     </inertial>
     <visual>
@@ -171,11 +128,10 @@ Executable File  328 lines (328 sloc)  8.17 KB
         rpy="1.5707963267948966 0 0" />
       <geometry>
         <cylinder radius="0.05" length="0.01"/>
+        <!-- <mesh filename="package://oatmeal_gazebo/simulation/models/carwheel/meshes/FL.STL" /> -->
       </geometry>
-      <material
-        name="">
-        <color
-          rgba="1 1 1 1" />
+      <material name="">
+        <color rgba="1 1 1 1" />
       </material>
     </visual>
     <collision>
@@ -183,7 +139,7 @@ Executable File  328 lines (328 sloc)  8.17 KB
         xyz="0 0 0"
         rpy="1.5707963267948966 0 0" />
       <geometry>
-        <cylinder radius="0.05" length="0.01"/>
+        <cylinder radius="0.051" length="0.0001"/>
       </geometry>
     </collision>
   </link>
@@ -202,10 +158,10 @@ Executable File  328 lines (328 sloc)  8.17 KB
     <axis
       xyz="0 1 0" />
     <limit
-      lower="-1000000000"
-      upper="1000000000"
-      effort="0"
-      velocity="0" />
+      lower="-1000000"
+      upper="1000000"
+      effort="30"
+      velocity="20" />
   </joint>
   <gazebo reference="Joint_FL">
     <kp>1.0</kp>
@@ -227,10 +183,10 @@ Executable File  328 lines (328 sloc)  8.17 KB
         value="0.0482548631591392" />
       <inertia
         ixx="1.97040691233152E-05"
-        ixy="1.35525271560688E-22"
-        ixz="5.84452733605467E-22"
+        ixy="0.0"
+        ixz="0.0"
         iyy="3.86038905273114E-05"
-        iyz="1.35525271560688E-22"
+        iyz="0.0"
         izz="1.97040691233152E-05" />
     </inertial>
     <visual>
@@ -238,12 +194,11 @@ Executable File  328 lines (328 sloc)  8.17 KB
         xyz="0 0 0"
         rpy="1.5707963267948966 0 0" />
       <geometry>
-        <cylinder radius="0.05" length="0.01"/>
+        <cylinder radius="0.05" length="0.01"/>/
+        <!-- <mesh filename="package://oatmeal_gazebo/simulation/models/carwheel/meshes/HR.STL" /> -->
       </geometry>
-      <material
-        name="">
-        <color
-          rgba="1 1 1 1" />
+      <material name="">
+        <color rgba="1 1 1 1" />
       </material>
     </visual>
     <collision>
@@ -251,7 +206,7 @@ Executable File  328 lines (328 sloc)  8.17 KB
         xyz="0 0 0"
         rpy="1.5707963267948966 0 0" />
       <geometry>
-        <cylinder radius="0.05" length="0.01"/>
+        <cylinder radius="0.051" length="0.0001"/>
       </geometry>
     </collision>
   </link>
@@ -270,10 +225,10 @@ Executable File  328 lines (328 sloc)  8.17 KB
     <axis
       xyz="0 1 0" />
     <limit
-      lower="-1000000000"
-      upper="1000000000"
-      effort="0"
-      velocity="0" />
+      lower="-1000000"
+      upper="1000000"
+      effort="30"
+      velocity="20" />
   </joint>
   <gazebo reference="Joint_HR">
     <kp>1.0</kp>
@@ -290,15 +245,15 @@ Executable File  328 lines (328 sloc)  8.17 KB
     <inertial>
       <origin
         xyz="0 0 0"
-        rpy="0 0 0" />
+        rpy="1.5707963267948966 0 0" />
       <mass
         value="0.0482548631591393" />
       <inertia
         ixx="1.97040691233152E-05"
-        ixy="-1.76324152623343E-38"
-        ixz="-2.82118644197349E-37"
+        ixy="0.0"
+        ixz="0.0"
         iyy="3.86038905273114E-05"
-        iyz="-1.10202595389589E-38"
+        iyz="0.0"
         izz="1.97040691233152E-05" />
     </inertial>
     <visual>
@@ -308,10 +263,8 @@ Executable File  328 lines (328 sloc)  8.17 KB
       <geometry>
         <cylinder radius="0.05" length="0.01"/>
       </geometry>
-      <material
-        name="">
-        <color
-          rgba="1 1 1 1" />
+      <material name="">
+        <color rgba="1 1 1 1" />
       </material>
     </visual>
     <collision>
@@ -319,7 +272,7 @@ Executable File  328 lines (328 sloc)  8.17 KB
         xyz="0 0 0"
         rpy="1.5707963267948966 0 0" />
       <geometry>
-        <cylinder radius="0.05" length="0.01"/>
+        <cylinder radius="0.051" length="0.0001"/>
       </geometry>
     </collision>
   </link>
@@ -338,10 +291,10 @@ Executable File  328 lines (328 sloc)  8.17 KB
     <axis
       xyz="0 1 0" />
     <limit
-      lower="-1000000000"
-      upper="1000000000"
-      effort="0"
-      velocity="0" />
+      lower="-1000000"
+      upper="1000000"
+      effort="30"
+      velocity="20" />
   </joint>
   <gazebo reference="Joint_HL">
     <kp>1.0</kp>
@@ -355,16 +308,3 @@ Executable File  328 lines (328 sloc)  8.17 KB
     <fudgeFactor>0.0</fudgeFactor>
   </gazebo>
 </robot>
-© 2022 GitHub, Inc.
-Terms
-Privacy
-Security
-Status
-Docs
-Contact GitHub
-Pricing
-API
-Training
-Blog
-About
-Loading complete
