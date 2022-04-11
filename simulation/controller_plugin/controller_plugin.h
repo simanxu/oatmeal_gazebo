@@ -31,14 +31,33 @@ class WorldControllerPlugin : public WorldPlugin {
   // 输入参数_sdf则是一个指向本插件SDF元素的指针。
   void Load(physics::WorldPtr _world, sdf::ElementPtr _sdf);
 
+  void Reset();
+
+  // 从World中载入Model
+  bool InitModel();
+
+  // Called by the world update end event
+  void OnUpdateEnd();
+
+ private:
+  void updatePositionController();
+
+  void updateVelocityController();
+
+  void updateTorqueController();
+
  private:
   int iterations_;
   physics::WorldPtr world_;
   physics::ModelPtr model_;
+  physics::JointPtr* joint_list_;
 
-  float* q_des_;
-  float* qd_des_;
-  float* tau_des_;
+  // Pointer to the update event connection
+  event::ConnectionPtr update_connection_;
+
+  double* q_des_;
+  double* qd_des_;
+  double* tau_des_;
 };
 
 // 向Gazebo注册本插件
