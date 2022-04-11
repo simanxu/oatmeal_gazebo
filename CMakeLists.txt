@@ -205,3 +205,4 @@ include_directories(
 
 ## Add subdirectories
 add_subdirectory(third_party)
+add_subdirectory(simulation/controller_plugin)
