@@ -38,8 +38,62 @@ void WorldControllerPlugin::Load(physics::WorldPtr _world, sdf::ElementPtr _sdf)
   // Listen to the update event. This event is broadcast every simulation iteration.
   this->update_connection_ = event::Events::ConnectWorldUpdateEnd(std::bind(&WorldControllerPlugin::OnUpdateEnd, this));
 
-  std::cout << "[CarWheel] plugin name: " << _sdf->Get<std::string>("filename") << std::endl;
-  std::cout << "[CarWheel] world name: " << _world->Name() << std::endl;
+  // Create ros thread
+  node_handle_.setCallbackQueue(&callback_queue_);
+
+  m_ros_thread = new std::thread(&WorldControllerPlugin::RosThread, this);
+  m_ros_thread->detach();
+
+  control_mode_ = ControlMode::kStop;
+}
+
+// Create a ros thread for msg and cmd send
+// Avoid prohram block by ros
+void WorldControllerPlugin::RosThread() {
+  joy_stick_sub_ = node_handle_.subscribe("/joy", 10, &WorldControllerPlugin::GeJoyStateCb, this);
+  ros::Rate loopRate(100);
+  while (ros::ok()) {
+    // reset all button trigger
+    ros::spinOnce();
+    loopRate.sleep();
+  }
+}
+
+void WorldControllerPlugin::GeJoyStateCb(const sensor_msgs::Joy::ConstPtr& msgIn) {
+  // the trigger LT/RT may be 0, when connection break.
+  if (sim_joy_cmd_.buttons[0] > 0.5 && msgIn->buttons[0] < 0.5) {
+    button_A_release_ = true;
+    std::cout << "button_A_release!" << std::endl;
+  }
+  if (sim_joy_cmd_.buttons[1] > 0.5 && msgIn->buttons[1] < 0.5) {
+    button_B_release_ = true;
+    std::cout << "button_B_release!" << std::endl;
+  }
+  if (sim_joy_cmd_.buttons[2] > 0.5 && msgIn->buttons[2] < 0.5) {
+    button_X_release_ = true;
+    std::cout << "button_X_release!" << std::endl;
+  }
+  if (sim_joy_cmd_.buttons[3] > 0.5 && msgIn->buttons[3] < 0.5) {
+    button_Y_release_ = true;
+    std::cout << "button_Y_release!" << std::endl;
+  }
+  for (int i = 0; i < 9; i++) {
+    sim_joy_cmd_.buttons[i] = msgIn->buttons[i];
+  }
+  for (int i = 0; i < 6; i++) {
+    sim_joy_cmd_.axes[i] = msgIn->axes[i];
+  }
+
+  // Update control mode
+  if (sim_joy_cmd_.buttons[0] == 100) {
+    control_mode_ = ControlMode::kPosition;
+    std::cout << "Checkout position control!" << std::endl;
+  } else if (sim_joy_cmd_.buttons[0] == 200) {
+    control_mode_ = ControlMode::kForce;
+    std::cout << "Checkout force control!" << std::endl;
+  } else {
+    control_mode_ = ControlMode::kStop;
+  }
 }
 
 void WorldControllerPlugin::OnUpdateEnd() {
@@ -53,20 +107,32 @@ void WorldControllerPlugin::OnUpdateEnd() {
     return;
   }
 
+  callback_queue_.callAvailable();
+
   // Update the sensor status from gazebo
   this->UpdateSensorsStatus();
 
   // Exchange control and sensor data between controller and gazebo
   // ioExchangeData result = this->updateFSMcontroller();
   for (int i = 0; i < kNumJoints; ++i) {
-    q_des_[i] = this->iterations_ * 0.01;
-    tau_des_[i] = 3.0;
+    q_des_[i] = q_act_[i] + 0.2;
+    tau_des_[i] = 2.0;
   }
 
   // Gazebo controller: 可以用位置、速度、力矩模式实现Gazebo底层的控制指令下发
-  // this->updatePositionController();
-
-  this->UpdateTorqueController();
+  if (control_mode_ == ControlMode::kStop) {
+    for (int i = 0; i < kNumJoints; ++i) {
+      q_des_[i] = q_act_[i];
+      qd_des_[i] = 0.0;
+      tau_des_[i] = 0.0;
+    }
+    this->UpdatePositionController();
+    this->UpdateTorqueController();
+  } else if (control_mode_ == ControlMode::kPosition) {
+    this->UpdatePositionController();
+  } else if (control_mode_ == ControlMode::kForce) {
+    this->UpdateTorqueController();
+  }
 
   this->iterations_++;
 }

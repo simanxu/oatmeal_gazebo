@@ -1,11 +1,13 @@
-#ifndef SRC_OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
-#define SRC_OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
+#ifndef OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
+#define OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
 
 #include <ros/callback_queue.h>
 #include <ros/publisher.h>
 #include <ros/ros.h>
 #include <ros/subscribe_options.h>
 #include <ros/subscriber.h>
+#include <sensor_msgs/JointState.h>
+#include <sensor_msgs/Joy.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int64.h>
 #include <tf/tf.h>
@@ -18,6 +20,7 @@
 #include <thread>
 #include <vector>
 
+#include "controllers/io_exchange_data.h"
 #include "third_party/eigen/Eigen/Dense"
 #include "third_party/rbdl/include/rbdl/rbdl.h"
 
@@ -46,6 +49,10 @@ class WorldControllerPlugin : public WorldPlugin {
   void OnUpdateEnd();
 
  private:
+  void GeJoyStateCb(const sensor_msgs::Joy::ConstPtr& msgIn);
+
+  void RosThread();
+
   void UpdateSensorsStatus();
 
   void UpdatePositionController();
@@ -79,10 +86,28 @@ class WorldControllerPlugin : public WorldPlugin {
 
   // Pointer to the update event connection
   event::ConnectionPtr update_connection_;
+
+  // Ros
+  std::thread* m_ros_thread;
+  ros::Subscriber joy_stick_sub_;
+  ros::NodeHandle node_handle_;
+  ros::CallbackQueue callback_queue_;
+
+  // Joystick
+  JoystickCMD sim_joy_cmd_;
+  bool button_A_release_;
+  bool button_B_release_;
+  bool button_X_release_;
+  bool button_Y_release_;
+  bool button_LB_release_;
+  bool button_RB_release_;
+
+  // Control mode
+  unsigned int control_mode_;
 };
 
 // 向Gazebo注册本插件
 GZ_REGISTER_WORLD_PLUGIN(WorldControllerPlugin);
 }  // namespace gazebo
 
-#endif  // SRC_OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
+#endif  // OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
