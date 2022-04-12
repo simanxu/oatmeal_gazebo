@@ -8,14 +8,14 @@
 #include <ros/subscriber.h>
 #include <sensor_msgs/JointState.h>
 #include <sensor_msgs/Joy.h>
-#include <std_msgs/Float32.h>
 #include <std_msgs/Int64.h>
-#include <tf/tf.h>
+#include <std_msgs/Int64MultiArray.h>
 #include <gazebo/gazebo.hh>
 #include <gazebo/msgs/msgs.hh>
 #include <gazebo/physics/physics.hh>
 #include <gazebo/transport/transport.hh>
 
+#include <algorithm>
 #include <string>
 #include <thread>
 #include <vector>
@@ -51,7 +51,9 @@ class WorldControllerPlugin : public WorldPlugin {
  private:
   void GeJoyStateCb(const sensor_msgs::Joy::ConstPtr& msgIn);
 
-  void RosThread();
+  void RosThreadForCmdMsg();
+
+  void RosThreadForLogMsg();
 
   void UpdateSensorsStatus();
 
@@ -87,11 +89,14 @@ class WorldControllerPlugin : public WorldPlugin {
   // Pointer to the update event connection
   event::ConnectionPtr update_connection_;
 
-  // Ros
-  std::thread* m_ros_thread;
-  ros::Subscriber joy_stick_sub_;
   ros::NodeHandle node_handle_;
+  // Ros thread for cmd
+  std::thread* cmd_ros_thread_;
+  ros::Subscriber joy_stick_sub_;
   ros::CallbackQueue callback_queue_;
+  // Ros thread for pub data
+  std::thread* pub_ros_thread_;
+  ros::Publisher data_publisher_;
 
   // Joystick
   JoystickCMD sim_joy_cmd_;

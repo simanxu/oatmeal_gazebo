@@ -4,6 +4,7 @@
 enum ControlMode {
   kStop = 0,
   kPosition,
+  kVelocity,
   kForce,
 };
 

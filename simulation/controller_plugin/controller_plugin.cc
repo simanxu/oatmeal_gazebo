@@ -41,20 +41,37 @@ void WorldControllerPlugin::Load(physics::WorldPtr _world, sdf::ElementPtr _sdf)
   // Create ros thread
   node_handle_.setCallbackQueue(&callback_queue_);
 
-  m_ros_thread = new std::thread(&WorldControllerPlugin::RosThread, this);
-  m_ros_thread->detach();
+  cmd_ros_thread_ = new std::thread(&WorldControllerPlugin::RosThreadForCmdMsg, this);
+  // detach()的作用是将子线程和主线程的关联分离，也就是说detach()后子线程在后台独立继续运行，主线程无法再取得子线程的控制权，即使主线程结束，子线程未执行也不会结束
+  cmd_ros_thread_->detach();
+
+  pub_ros_thread_ = new std::thread(&WorldControllerPlugin::RosThreadForLogMsg, this);
+  pub_ros_thread_->detach();
 
   control_mode_ = ControlMode::kStop;
 }
 
 // Create a ros thread for msg and cmd send
 // Avoid prohram block by ros
-void WorldControllerPlugin::RosThread() {
+void WorldControllerPlugin::RosThreadForCmdMsg() {
   joy_stick_sub_ = node_handle_.subscribe("/joy", 10, &WorldControllerPlugin::GeJoyStateCb, this);
-  ros::Rate loopRate(100);
+  ros::Rate loopRate(1000);
   while (ros::ok()) {
-    // reset all button trigger
+    // spinOnce()循环等待订阅节点的回调函数
     ros::spinOnce();
+    loopRate.sleep();
+  }
+}
+
+void WorldControllerPlugin::RosThreadForLogMsg() {
+  data_publisher_ = node_handle_.advertise<std_msgs::Int64MultiArray>("/carwheel/status", 1000);
+  ros::Rate loopRate(1000);
+  std_msgs::Int64MultiArray msgs;
+  msgs.data.resize(2);
+  while (ros::ok()) {
+    msgs.data[0] = this->iterations_;
+    msgs.data[1] = sim_joy_cmd_.buttons[0];
+    data_publisher_.publish(msgs);
     loopRate.sleep();
   }
 }
@@ -86,12 +103,16 @@ void WorldControllerPlugin::GeJoyStateCb(const sensor_msgs::Joy::ConstPtr& msgIn
 
   // Update control mode
   if (sim_joy_cmd_.buttons[0] == 100) {
+    if (control_mode_ != ControlMode::kPosition) std::cout << "Checkout position control!" << std::endl;
     control_mode_ = ControlMode::kPosition;
-    std::cout << "Checkout position control!" << std::endl;
   } else if (sim_joy_cmd_.buttons[0] == 200) {
+    if (control_mode_ != ControlMode::kVelocity) std::cout << "Checkout velocity control!" << std::endl;
+    control_mode_ = ControlMode::kVelocity;
+  } else if (sim_joy_cmd_.buttons[0] == 300) {
+    if (control_mode_ != ControlMode::kForce) std::cout << "Checkout force control!" << std::endl;
     control_mode_ = ControlMode::kForce;
-    std::cout << "Checkout force control!" << std::endl;
   } else {
+    if (control_mode_ != ControlMode::kStop) std::cout << "Checkout stop control!" << std::endl;
     control_mode_ = ControlMode::kStop;
   }
 }
@@ -115,7 +136,7 @@ void WorldControllerPlugin::OnUpdateEnd() {
   // Exchange control and sensor data between controller and gazebo
   // ioExchangeData result = this->updateFSMcontroller();
   for (int i = 0; i < kNumJoints; ++i) {
-    q_des_[i] = q_act_[i] + 0.2;
+    q_des_[i] = q_act_[i] + 0.02;
     tau_des_[i] = 2.0;
   }
 
@@ -130,6 +151,8 @@ void WorldControllerPlugin::OnUpdateEnd() {
     this->UpdateTorqueController();
   } else if (control_mode_ == ControlMode::kPosition) {
     this->UpdatePositionController();
+  } else if (control_mode_ == ControlMode::kVelocity) {
+    this->UpdateVelocityController();
   } else if (control_mode_ == ControlMode::kForce) {
     this->UpdateTorqueController();
   }
@@ -174,6 +197,7 @@ void WorldControllerPlugin::UpdateSensorsStatus() {
   base_xyz_act_.x() = base_link_->WorldPose().Pos().X();
   base_xyz_act_.y() = base_link_->WorldPose().Pos().Y();
   base_xyz_act_.z() = base_link_->WorldPose().Pos().Z();
+  // std::cout << "World position: " << base_xyz_act_.transpose() << std::endl;
 
   base_linear_vel_act_.x() = base_link_->WorldLinearVel().X();
   base_linear_vel_act_.y() = base_link_->WorldLinearVel().Y();
@@ -202,27 +226,29 @@ void WorldControllerPlugin::UpdateSensorsStatus() {
 // SetPosition(index, pos, bool)
 // index is the index of the joint axis (degree of freedom), 一般关节自由度都是1，因此index为0
 void WorldControllerPlugin::UpdatePositionController() {
+  bool set_cmd_success = true;
   for (int i = 0; i < kNumJoints; ++i) {
-    joint_list_[i]->SetPosition(0, q_des_[i], false);
+    set_cmd_success = joint_list_[i]->SetPosition(0, q_des_[i], false);
+    if (!set_cmd_success) {
+      std::cout << "set position cmd failed at joint " << i << std::endl;
+    }
   }
+}
 
-  // for (int i = 0; i < kNumJoints; ++i) {
-  //   // Velocity API based
-  //   double vel_limit = joint_ptr_list[i]->GetVelocityLimit(0);
-  //   double pos_lower_limit = joint_ptr_list[i]->LowerLimit(0);
-  //   double pos_upper_limit = joint_ptr_list[i]->UpperLimit(0);
-  //   double effort_limit = joint_ptr_list[i]->GetEffortLimit(0);
-  //   joint_ptr_list[i]->SetParam("fmax", 0, (double)effort_limit);
-  //   ref_jnt_q[i] = ref_jnt_q[i] > pos_upper_limit ? pos_upper_limit : ref_jnt_q[i];
-  //   ref_jnt_q[i] = ref_jnt_q[i] < pos_lower_limit ? pos_lower_limit : ref_jnt_q[i];
-  //   double error_curr = ref_jnt_q[i] - act_jnt_q[i];
-  //   // Kp is set to 1000 as default?
-  //   double vel_input = 1000.0 * error_curr;
-  //   vel_input = vel_input > vel_limit ? vel_limit : vel_input;
-  //   vel_input = vel_input < -vel_limit ? -vel_limit : vel_input;
-
-  //   joint_ptr_list[i]->SetParam("vel", 0, (double)(vel_input));
-  // }
+// Velocity API based controller
+void WorldControllerPlugin::UpdateVelocityController() {
+  for (int i = 0; i < kNumJoints; ++i) {
+    double vel_limit = joint_list_[i]->GetVelocityLimit(0);
+    double pos_lower_limit = joint_list_[i]->LowerLimit(0);
+    double pos_upper_limit = joint_list_[i]->UpperLimit(0);
+    double effort_limit = joint_list_[i]->GetEffortLimit(0);
+    joint_list_[i]->SetParam("fmax", 0, effort_limit);
+    q_des_[i] = std::clamp(q_des_[i], pos_lower_limit, pos_upper_limit);
+    // Kp is set to 1000 as default ?
+    double vel_input = 1000.0 * (q_des_[i] - q_act_[i]);
+    vel_input = std::clamp(vel_input, -vel_limit, vel_limit);
+    joint_list_[i]->SetVelocity(0, vel_input);
+  }
 }
 
 void WorldControllerPlugin::UpdateTorqueController() {

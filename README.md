@@ -24,6 +24,11 @@ axes: [1, 2, 3, 4, 5, 6]
 buttons: [1, 2, 3, 4, 5, 6, 7, 8, 9]"
 ```
 
+## View robot status data from ros
+```shell
+rostopic echo /carwheel/status
+```
+
 ## Send msg/cmd from keyboard(TODO)
 ```shell
 

@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 find_package(gazebo REQUIRED)
 find_package(roscpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 include_directories(${GAZEBO_INCLUDE_DIRS})
 include_directories(${roscpp_INCLUDE_DIRS})

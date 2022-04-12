@@ -114,8 +114,8 @@ catkin_package(
 list(APPEND ROBOTICS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(
-# include
-# ${catkin_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+  /opt/ros/noetic/include
 )
 
 ## Declare a C++ library
