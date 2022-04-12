@@ -12,16 +12,15 @@ add_library(rbdl STATIC
   src/rbdl_utils.cc
   src/rbdl_version.cc
 )
+
 target_link_libraries(rbdl
   PUBLIC
     eigen_compat
 )
+
 target_include_directories(rbdl
   SYSTEM PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/include
 )
-target_include_directories(rbdl
-  PUBLIC
-    ${XLEOPARD_INCLUDE_DIRS}
-)
+
 set_target_properties(rbdl PROPERTIES POSITION_INDEPENDENT_CODE ON)

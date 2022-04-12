@@ -1,14 +1,9 @@
 add_library(eigen INTERFACE)
-target_include_directories(eigen INTERFACE
-  ${XLEOPARD_INCLUDE_DIRS}
-)
 
 # Avoids using LGPL code.
 target_compile_definitions(eigen INTERFACE EIGEN_MPL2_ONLY)
 
 # Hides local Eigen symbols to avoid conflict when loading third-party libraries also built with Eigen.
-# TODO(lxiang): Remove this hack after applying proper ABI visibility control.
-# This is a hack because the script's pattern matching is not accurate.
 target_link_options(eigen INTERFACE
   "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/hide_eigen.ld"
 )

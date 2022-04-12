@@ -8,11 +8,20 @@ std::vector<std::string> kJointNames = {"Joint_FR", "Joint_FL", "Joint_HR", "Joi
 
 namespace gazebo {
 WorldControllerPlugin::WorldControllerPlugin() {
+  q_act_ = new double[kNumJoints];
+  qd_act_ = new double[kNumJoints];
+  tau_act_ = new double[kNumJoints];
+
   q_des_ = new double[kNumJoints];
   qd_des_ = new double[kNumJoints];
   tau_des_ = new double[kNumJoints];
+
   joint_list_ = new physics::JointPtr[kNumJoints];
   for (int i = 0; i < kNumJoints; ++i) {
+    q_act_[i] = 0.0;
+    qd_act_[i] = 0.0;
+    tau_act_[i] = 0.0;
+
     q_des_[i] = 0.0;
     qd_des_[i] = 0.0;
     tau_des_[i] = 0.0;
@@ -34,11 +43,10 @@ void WorldControllerPlugin::Load(physics::WorldPtr _world, sdf::ElementPtr _sdf)
 }
 
 void WorldControllerPlugin::OnUpdateEnd() {
-  // Check the gazebo model status
+  // Check the Gazebo model status
   bool init_status = true;
   if (!model_) {
     init_status = InitModel();
-    std::cout << "re-init model " << init_status << std::endl;
   }
   if (!init_status) {
     model_ = NULL;
@@ -46,28 +54,88 @@ void WorldControllerPlugin::OnUpdateEnd() {
   }
 
   // Update the sensor status from gazebo
-  // this->updateSensorsStatus();
+  this->UpdateSensorsStatus();
 
   // Exchange control and sensor data between controller and gazebo
   // ioExchangeData result = this->updateFSMcontroller();
-
   for (int i = 0; i < kNumJoints; ++i) {
-    // ref_jnt_q[i] = result.sim_controller_pos[k];
     q_des_[i] = this->iterations_ * 0.01;
     tau_des_[i] = 3.0;
   }
 
+  // Gazebo controller: 可以用位置、速度、力矩模式实现Gazebo底层的控制指令下发
   // this->updatePositionController();
 
-  this->updateTorqueController();
+  this->UpdateTorqueController();
 
   this->iterations_++;
 }
 
-// [in]	_index	Index of the joint axis (degree of freedom).
-// 对于一般的关节，其自由度都是1，因此_index参数一般设置为0
-// [in]	_position	Position to set the joint to. unspecified, pure kinematic teleportation.
-void WorldControllerPlugin::updatePositionController() {
+void WorldControllerPlugin::UpdateSensorsStatus() {
+  // Update joint sensors status
+  bool is_sensor_return_nan = false;
+  for (int i = 0; i < kNumJoints; ++i) {
+    q_act_[i] = joint_list_[i]->Position(0);
+    qd_act_[i] = joint_list_[i]->GetVelocity(0);
+    tau_act_[i] = joint_list_[i]->GetForce(0);
+
+    if (std::isnan(q_act_[i])) {
+      is_sensor_return_nan = true;
+      q_act_[i] = 0.0;
+      // std::cout << "nan in joint q " << i << std::endl;
+    }
+
+    if (std::isnan(qd_act_[i])) {
+      is_sensor_return_nan = true;
+      qd_act_[i] = 0.0;
+      // std::cout << "nan in joint qd " << i << std::endl;
+    }
+
+    if (std::isnan(tau_act_[i])) {
+      is_sensor_return_nan = true;
+      tau_act_[i] = 0.0;
+      // std::cout << "nan in joint tau " << i << std::endl;
+    }
+  }
+  // std::cout << "success update joint sensors status!" << std::endl;
+
+  // Update fake IMU status
+  base_quat_act_.w() = base_link_->WorldPose().Rot().W();
+  base_quat_act_.x() = base_link_->WorldPose().Rot().X();
+  base_quat_act_.y() = base_link_->WorldPose().Rot().Y();
+  base_quat_act_.z() = base_link_->WorldPose().Rot().Z();
+
+  base_xyz_act_.x() = base_link_->WorldPose().Pos().X();
+  base_xyz_act_.y() = base_link_->WorldPose().Pos().Y();
+  base_xyz_act_.z() = base_link_->WorldPose().Pos().Z();
+
+  base_linear_vel_act_.x() = base_link_->WorldLinearVel().X();
+  base_linear_vel_act_.y() = base_link_->WorldLinearVel().Y();
+  base_linear_vel_act_.z() = base_link_->WorldLinearVel().Z();
+
+  // Confirm whether you need absolute angular velocity(in world frame) or relative angular velocity(in local frame)
+  // WorldAngularVel = RotMat * RelativeAngularVel <==> RotMat.transpose() * WorldAngularVel = RelativeAngularVel
+  base_angular_vel_act_.x() = base_link_->WorldAngularVel().X();
+  base_angular_vel_act_.y() = base_link_->WorldAngularVel().Y();
+  base_angular_vel_act_.z() = base_link_->WorldAngularVel().Z();
+  // std::cout << "World Angular Vel act: " << base_angular_vel_act_.transpose() << std::endl;
+  // std::cout << "Local Angular Vel cal: "
+  //           << (base_quat_act_.toRotationMatrix().transpose() * base_angular_vel_act_).transpose() << std::endl;
+
+  base_angular_vel_act_.x() = base_link_->RelativeAngularVel().X();
+  base_angular_vel_act_.y() = base_link_->RelativeAngularVel().Y();
+  base_angular_vel_act_.z() = base_link_->RelativeAngularVel().Z();
+  // std::cout << "Local Angular Vel act: " << base_angular_vel_act_.transpose() << std::endl;
+
+  base_linear_acc_act_.x() = base_link_->WorldLinearAccel().X();
+  base_linear_acc_act_.y() = base_link_->WorldLinearAccel().Y();
+  base_linear_acc_act_.z() = base_link_->WorldLinearAccel().Z();
+  // std::cout << "success update fake IMU sensor status!" << std::endl;
+}
+
+// SetPosition(index, pos, bool)
+// index is the index of the joint axis (degree of freedom), 一般关节自由度都是1，因此index为0
+void WorldControllerPlugin::UpdatePositionController() {
   for (int i = 0; i < kNumJoints; ++i) {
     joint_list_[i]->SetPosition(0, q_des_[i], false);
   }
@@ -91,7 +159,7 @@ void WorldControllerPlugin::updatePositionController() {
   // }
 }
 
-void WorldControllerPlugin::updateTorqueController() {
+void WorldControllerPlugin::UpdateTorqueController() {
   for (int i = 0; i < kNumJoints; ++i) {
     // tau_[i] = result.sim_controller_tau[i];
     joint_list_[i]->SetForce(0, tau_des_[i]);
@@ -115,6 +183,7 @@ bool WorldControllerPlugin::InitModel() {
   }
 
   if (model_ != NULL) {
+    base_link_ = model_->GetLink(kBaseLinkNameInUrdf);
     for (int i = 0; i < kNumJoints; ++i) {
       joint_list_[i] = model_->GetJoint(kJointNames[i]);
     }

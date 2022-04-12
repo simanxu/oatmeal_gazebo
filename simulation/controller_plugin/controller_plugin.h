@@ -1,5 +1,5 @@
-#ifndef SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
-#define SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
+#ifndef SRC_OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
+#define SRC_OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
 
 #include <ros/callback_queue.h>
 #include <ros/publisher.h>
@@ -8,6 +8,7 @@
 #include <ros/subscriber.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int64.h>
+#include <tf/tf.h>
 #include <gazebo/gazebo.hh>
 #include <gazebo/msgs/msgs.hh>
 #include <gazebo/physics/physics.hh>
@@ -17,8 +18,13 @@
 #include <thread>
 #include <vector>
 
-namespace gazebo {
+#include "third_party/eigen/Eigen/Dense"
+#include "third_party/rbdl/include/rbdl/rbdl.h"
 
+namespace rbdl = RigidBodyDynamics;
+namespace rbdl_math = RigidBodyDynamics::Math;
+
+namespace gazebo {
 class WorldControllerPlugin : public WorldPlugin {
  public:
   WorldControllerPlugin();
@@ -40,11 +46,13 @@ class WorldControllerPlugin : public WorldPlugin {
   void OnUpdateEnd();
 
  private:
-  void updatePositionController();
+  void UpdateSensorsStatus();
 
-  void updateVelocityController();
+  void UpdatePositionController();
 
-  void updateTorqueController();
+  void UpdateVelocityController();
+
+  void UpdateTorqueController();
 
  private:
   int iterations_;
@@ -52,17 +60,29 @@ class WorldControllerPlugin : public WorldPlugin {
   physics::ModelPtr model_;
   physics::JointPtr* joint_list_;
 
-  // Pointer to the update event connection
-  event::ConnectionPtr update_connection_;
+  physics::LinkPtr base_link_;
+
+  Eigen::Quaterniond base_quat_act_;
+  Eigen::Vector3d base_xyz_act_;
+  Eigen::Vector3d base_rpy_act_;
+  Eigen::Vector3d base_linear_vel_act_;
+  Eigen::Vector3d base_linear_acc_act_;
+  Eigen::Vector3d base_angular_vel_act_;
 
   double* q_des_;
   double* qd_des_;
   double* tau_des_;
+
+  double* q_act_;
+  double* qd_act_;
+  double* tau_act_;
+
+  // Pointer to the update event connection
+  event::ConnectionPtr update_connection_;
 };
 
 // 向Gazebo注册本插件
 GZ_REGISTER_WORLD_PLUGIN(WorldControllerPlugin);
-
 }  // namespace gazebo
 
-#endif  // SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_
+#endif  // SRC_OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_H_

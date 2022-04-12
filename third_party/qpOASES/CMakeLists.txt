@@ -24,10 +24,7 @@ target_include_directories(qpOASES
   SYSTEM PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/include
 )
-target_include_directories(qpOASES
-  PUBLIC
-    ${XLEOPARD_INCLUDE_DIRS}
-)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(qpOASES
     PRIVATE

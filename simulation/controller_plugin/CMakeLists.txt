@@ -13,7 +13,20 @@ list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
 
 add_library(controller_plugin_cc SHARED controller_plugin.cc)
 
+target_include_directories(controller_plugin_cc
+  SYSTEM PRIVATE
+    ${GAZEBO_INCLUDE_DIRS}
+    ${roscpp_INCLUDE_DIRS}
+)
+
+target_include_directories(controller_plugin_cc
+  PRIVATE
+    ${ROBOTICS_INCLUDE_DIR}
+)
+
 target_link_libraries(controller_plugin_cc
+  PUBLIC
     ${GAZEBO_LIBRARIES}
     ${roscpp_LIBRARIES}
+    rbdl
 )
