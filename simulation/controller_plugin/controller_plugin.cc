@@ -2,7 +2,8 @@
 
 namespace {
 constexpr int kNumJoints = 4;
-const std::string kBaseLinkNameInUrdf = "body";
+const std::string kBaseName = "real_body";  // used in carwheel.urdf
+// const std::string kBaseName = "virtual_body";  // used in carwheel_constraint.urdf
 std::vector<std::string> kJointNames = {"Joint_FR", "Joint_FL", "Joint_HR", "Joint_HL"};
 }  // namespace
 
@@ -220,6 +221,7 @@ void WorldControllerPlugin::UpdateSensorsStatus() {
   base_linear_acc_act_.x() = base_link_->WorldLinearAccel().X();
   base_linear_acc_act_.y() = base_link_->WorldLinearAccel().Y();
   base_linear_acc_act_.z() = base_link_->WorldLinearAccel().Z();
+
   // std::cout << "success update fake IMU sensor status!" << std::endl;
 }
 
@@ -258,15 +260,14 @@ void WorldControllerPlugin::UpdateTorqueController() {
   }
 }
 
-void WorldControllerPlugin::Reset() { InitModel(); }
-
 bool WorldControllerPlugin::InitModel() {
   std::string urdf_file_name;
-  int model_counts = world_->ModelCount();
-  std::cout << "Found " << model_counts << " models" << std::endl;
-  for (int i = 0; i < model_counts; ++i) {
-    std::cout << i << " " << world_->ModelByIndex(i)->GetName() << std::endl;
-    if (world_->ModelByIndex(i)->GetLink(kBaseLinkNameInUrdf) != NULL) {
+  for (int i = 0; i < world_->ModelCount(); ++i) {
+    std::vector<physics::LinkPtr> link_vec = world_->ModelByIndex(i)->GetLinks();
+    for (int n = 0; n < link_vec.size(); ++n) {
+      std::cout << "model " << world_->ModelByIndex(i)->GetName() << ", link " << link_vec[n]->GetName() << std::endl;
+    }
+    if (world_->ModelByIndex(i)->GetLink(kBaseName) != NULL) {
       model_ = world_->ModelByIndex(i);
       urdf_file_name = world_->ModelByIndex(i)->GetName();
       std::cout << "urdf file name: " << urdf_file_name << std::endl;
@@ -275,16 +276,22 @@ bool WorldControllerPlugin::InitModel() {
   }
 
   if (model_ != NULL) {
-    base_link_ = model_->GetLink(kBaseLinkNameInUrdf);
+    base_link_ = model_->GetLink(kBaseName);
+    if (base_link_ == NULL) {
+      std::cout << "failed get base link from model!" << std::endl;
+      return false;
+    }
+
     for (int i = 0; i < kNumJoints; ++i) {
       joint_list_[i] = model_->GetJoint(kJointNames[i]);
     }
-    std::cout << "Success init model!" << std::endl;
+    std::cout << "success init model!" << std::endl;
     return true;
-  } else {
-    std::cout << "We cannot found proper model, init plugin failed!" << std::endl;
-    return false;
   }
+
+  return false;
 }
+
+void WorldControllerPlugin::Reset() { InitModel(); }
 
 }  // namespace gazebo

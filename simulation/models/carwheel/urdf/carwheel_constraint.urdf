@@ -1,5 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<robot name="carwheel">
+<robot name="carwheel_constraint">
+
+  <link name="world"></link>
+
+  <joint name="virtual_pz_joint" type="prismatic">
+      <parent link="world"/>
+      <child link="virtual_pz_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit effort="100.0" lower="-10.0" upper="10.0" velocity="1000.0"/>
+  </joint>
+
+  <link name="virtual_pz_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.00001" />
+      <inertia
+        ixx="0.00001"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.00001"
+        iyz="0.0"
+        izz="0.00001" />
+    </inertial>
+  </link>
+
+  <joint name="virtual_px_joint" type="prismatic">
+      <parent link="virtual_pz_link"/>
+      <child link="virtual_body"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <limit effort="1000.0" lower="-1000.0" upper="1000.0" velocity="1000.0"/>
+  </joint>
+
+  <link name="virtual_body">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.00001" />
+      <inertia
+        ixx="0.00001"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.00001"
+        iyz="0.0"
+        izz="0.00001" />
+    </inertial>
+  </link>
+
+
+  <joint name="virtual_fixed_joint" type="fixed">
+      <parent link="virtual_body"/>
+      <child link="real_body"/>
+  </joint>
+
   <link name="real_body">
     <inertial>
       <origin
