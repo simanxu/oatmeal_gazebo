@@ -103,12 +103,13 @@ void WorldControllerPlugin::UpdateJoyStatus(const sensor_msgs::Joy::ConstPtr& ms
     if (control_mode_ != ControlMode::kWbcController) std::cout << "Switch to WBC Controller!" << std::endl;
     control_mode_ = ControlMode::kWbcController;
   } else {
+    if (control_mode_ != ControlMode::kPassive) std::cout << "Switch to Passive!" << std::endl;
     control_mode_ = ControlMode::kPassive;
   }
 
   // Update control command
-  base_linear_vel_des_.x() = 10.0 * sim_joy_cmd_.axes[1];
-  base_linear_vel_des_.y() = 10.0 * sim_joy_cmd_.axes[0];
+  base_linear_vel_des_.x() = 1.0 * sim_joy_cmd_.axes[1];
+  base_linear_vel_des_.y() = 1.0 * sim_joy_cmd_.axes[0];
   base_linear_vel_des_.z() = base_linear_vel_act_.z();
 }
 
@@ -135,20 +136,30 @@ void WorldControllerPlugin::OnUpdateEnd() {
       q_des_[i] = q_act_[i];
     }
   } else if (control_mode_ == ControlMode::kNorminalController) {
-    // omega = v / (2 * pi * R)
-    double omega = base_linear_vel_des_.x() / (2 * M_PI * kWheelRadius);
+    // qd_des = v / (2 * pi * R)
+    double qd_des = base_linear_vel_des_.x() / (2 * M_PI * kWheelRadius);
     for (int i = 0; i < kNumJoints; ++i) {
-      q_des_[i] = q_act_[i] + omega * control_dt_;
+      q_des_[i] = q_act_[i] + qd_des * control_dt_;
     }
-    fprintf(stderr, "%3.8f %3.8f %3.8f %3.8f\n", omega, q_act_[0], q_des_[0], q_des_[0] - q_act_[0]);
+    fprintf(stderr, "%3.8f %3.8f %3.8f %3.8f %3.8f\n", base_linear_vel_des_.x(), qd_des, q_act_[0], q_des_[0],
+            q_des_[0] - q_act_[0]);
+    this->UpdateVelocityApiBasedController();
   } else if (control_mode_ == ControlMode::kMpcController) {
-    std::cout << "Undefined controller!" << std::endl;
+    double qd_des = base_linear_vel_des_.x() / (2 * M_PI * kWheelRadius);
+    double qdd_des = 0.0;
+    for (int i = 0; i < kNumJoints; ++i) {
+      qdd_des = (qd_des - qd_act_[i]) / control_dt_;
+      tau_des_[i] = 1e-4 * qdd_des;
+      tau_des_[i] = 5.0;
+    }
+    fprintf(stderr, "%3.8f %3.8f %3.8f %3.8f\n", qd_des, qdd_des, tau_des_[0], q_des_[0] - q_act_[0]);
+    this->UpdateForceApiBasedController();
   } else if (control_mode_ == ControlMode::kWbcController) {
     std::cout << "Undefined controller!" << std::endl;
   }
 
-  // Gazebo controller: 可以用位置、速度、力矩模式实现Gazebo底层的控制指令下发
-  this->UpdateVelocityApiBasedController();
+  // // Gazebo controller: 可以用位置、速度、力矩模式实现Gazebo底层的控制指令下发
+  // this->UpdateVelocityApiBasedController();
 
   this->iterations_++;
 }
@@ -241,8 +252,9 @@ void WorldControllerPlugin::UpdateVelocityApiBasedController() {
     // Kp is set to 1000 as default ?
     double vel_input = (q_des_[i] - q_act_[i]) / control_dt_;
     vel_input = std::clamp(vel_input, -vel_limit, vel_limit);
-    joint_list_[i]->SetVelocity(0, vel_input);
-    std::cout << i << " vel_input: " << vel_input << std::endl;
+    joint_list_[i]->SetParam("vel", 0, vel_input);
+    // // This api dont't work?
+    // joint_list_[i]->SetVelocity(0, vel_input);
   }
 }
 
