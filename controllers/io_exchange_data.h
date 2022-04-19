@@ -2,15 +2,15 @@
 #define OATMEAL_GAZEBO_CONTROLLERS_IO_EXCHANGE_DATA_H_
 
 enum ControlMode {
-  kStop = 0,
-  kPosition,
-  kVelocity,
-  kForce,
+  kPassive = 0,
+  kNorminalController,
+  kMpcController,
+  kWbcController,
 };
 
 struct JoystickCMD {
   double axes[6];
-  int buttons[9];
+  int buttons[16];
 };
 
 struct ioExchangeData {
