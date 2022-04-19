@@ -58,14 +58,15 @@ target_include_directories(yaml-cpp
   SYSTEM PUBLIC
     ${ROBOTICS_INCLUDE_DIR}/third_party/yaml-cpp/include
 )
-# Fixes Clang warnings due to ABI. See https://github.com/jbeder/yaml-cpp/pull/815.
-target_compile_options(yaml-cpp
-  PUBLIC
-    -Wno-shadow
-)
-set_target_properties(yaml-cpp
-  PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    VISIBILITY_INLINES_HIDDEN ON
-    CXX_VISIBILITY_PRESET hidden
-)
+# # Fixes Clang warnings due to ABI. See https://github.com/jbeder/yaml-cpp/pull/815.
+# target_compile_options(yaml-cpp
+#   PUBLIC
+#     -Wno-shadow
+# )
+
+# set_target_properties(yaml-cpp
+#   PROPERTIES
+#     POSITION_INDEPENDENT_CODE ON
+#     VISIBILITY_INLINES_HIDDEN ON
+#     CXX_VISIBILITY_PRESET hidden
+# )
