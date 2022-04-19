@@ -49,7 +49,7 @@ class WorldControllerPlugin : public WorldPlugin {
   void OnUpdateEnd();
 
  private:
-  void GeJoyStateCb(const sensor_msgs::Joy::ConstPtr& msgIn);
+  void UpdateJoyStatus(const sensor_msgs::Joy::ConstPtr& msgIn);
 
   void RosThreadForCmdMsg();
 
@@ -57,14 +57,15 @@ class WorldControllerPlugin : public WorldPlugin {
 
   void UpdateSensorsStatus();
 
-  void UpdatePositionController();
+  void UpdatePositionApiBasedController();
 
-  void UpdateVelocityController();
+  void UpdateVelocityApiBasedController();
 
-  void UpdateTorqueController();
+  void UpdateForceApiBasedController();
 
  private:
   int iterations_;
+  double control_dt_;
   physics::WorldPtr world_;
   physics::ModelPtr model_;
   physics::JointPtr* joint_list_;
@@ -77,6 +78,9 @@ class WorldControllerPlugin : public WorldPlugin {
   Eigen::Vector3d base_linear_vel_act_;
   Eigen::Vector3d base_linear_acc_act_;
   Eigen::Vector3d base_angular_vel_act_;
+
+  Eigen::Vector3d base_xyz_des_;
+  Eigen::Vector3d base_linear_vel_des_;
 
   double* q_des_;
   double* qd_des_;
@@ -100,12 +104,6 @@ class WorldControllerPlugin : public WorldPlugin {
 
   // Joystick
   JoystickCMD sim_joy_cmd_;
-  bool button_A_release_;
-  bool button_B_release_;
-  bool button_X_release_;
-  bool button_Y_release_;
-  bool button_LB_release_;
-  bool button_RB_release_;
 
   // Control mode
   unsigned int control_mode_;

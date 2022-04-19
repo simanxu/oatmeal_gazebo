@@ -113,9 +113,12 @@ catkin_package(
 ## Your package locations should be listed before other locations
 list(APPEND ROBOTICS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+# # Fix controller plugin include error
+# list(APPEND ROBOTICS_INCLUDE_DIR /opt/ros/noetic/include/)
+
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  /opt/ros/noetic/include
+  ${ROBOTICS_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
