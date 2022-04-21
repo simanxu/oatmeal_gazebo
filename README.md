@@ -29,9 +29,11 @@ buttons: [1, 2, 3, 4, 5, 6, 7, 8, 9]"
 rostopic echo /carwheel/status
 ```
 
-## Send msg/cmd from keyboard(TODO)
+## Send msg/cmd from keyboard
 ```shell
-
+cd oatmeal_ws/
+source devel/setup.bash
+rosrun oatmeal_gazebo ros_joy_keboard
 ```
 
 ## To quickly stop Gazebo if Ctrl-C is too slow

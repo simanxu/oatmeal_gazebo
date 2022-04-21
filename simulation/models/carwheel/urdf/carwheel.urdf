@@ -40,7 +40,7 @@
     <inertial>
       <origin
         xyz="0 0 0"
-        rpy="1.5707963267948966 0 0" />
+        rpy="0 0 0" />
       <mass
         value="0.0482548631591392" />
       <inertia
@@ -88,20 +88,12 @@
     <limit
       lower="-1000000"
       upper="1000000"
-      effort="30"
-      velocity="20" />
+      effort="100"
+      velocity="1000" />
+    <dynamics
+      damping="0"
+      friction="0" />
   </joint>
-  <gazebo reference="Joint_FR">
-    <kp>1.0</kp>
-    <kd>1.0</kd>
-    <stopCfm>0.8</stopCfm>
-    <stopErp>0.5</stopErp>
-    <provideFeedback>true</provideFeedback>
-    <!-- Important para to enable ft sensor-->
-    <disableFixedJointLumping>true</disableFixedJointLumping>
-    <implicitSpringDamper>true</implicitSpringDamper>
-    <fudgeFactor>0.0</fudgeFactor>
-  </gazebo>
 
   <link name="FL">
     <inertial>
@@ -154,20 +146,12 @@
     <limit
       lower="-1000000"
       upper="1000000"
-      effort="30"
-      velocity="20" />
+      effort="100"
+      velocity="1000" />
+    <dynamics
+      damping="0"
+      friction="0" />
   </joint>
-  <gazebo reference="Joint_FL">
-    <kp>1.0</kp>
-    <kd>1.0</kd>
-    <stopCfm>0.8</stopCfm>
-    <stopErp>0.5</stopErp>
-    <provideFeedback>true</provideFeedback>
-    <!-- Important para to enable ft sensor-->
-    <disableFixedJointLumping>true</disableFixedJointLumping>
-    <implicitSpringDamper>true</implicitSpringDamper>
-    <fudgeFactor>0.0</fudgeFactor>
-  </gazebo>
 
   <link name="HR">
     <inertial>
@@ -220,26 +204,18 @@
     <limit
       lower="-1000000"
       upper="1000000"
-      effort="30"
-      velocity="20" />
+      effort="100"
+      velocity="1000" />
+    <dynamics
+      damping="0"
+      friction="0" />
   </joint>
-  <gazebo reference="Joint_HR">
-    <kp>1.0</kp>
-    <kd>1.0</kd>
-    <stopCfm>0.8</stopCfm>
-    <stopErp>0.5</stopErp>
-    <provideFeedback>true</provideFeedback>
-    <!-- Important para to enable ft sensor-->
-    <disableFixedJointLumping>true</disableFixedJointLumping>
-    <implicitSpringDamper>true</implicitSpringDamper>
-    <fudgeFactor>0.0</fudgeFactor>
-  </gazebo>
 
   <link name="HL">
     <inertial>
       <origin
         xyz="0 0 0"
-        rpy="1.5707963267948966 0 0" />
+        rpy="0 0 0" />
       <mass
         value="0.0482548631591393" />
       <inertia
@@ -285,18 +261,10 @@
     <limit
       lower="-1000000"
       upper="1000000"
-      effort="30"
-      velocity="20" />
+      effort="100"
+      velocity="1000" />
+    <dynamics
+      damping="0"
+      friction="0" />
   </joint>
-  <gazebo reference="Joint_HL">
-    <kp>1.0</kp>
-    <kd>1.0</kd>
-    <stopCfm>0.8</stopCfm>
-    <stopErp>0.5</stopErp>
-    <provideFeedback>true</provideFeedback>
-    <!-- Important para to enable ft sensor-->
-    <disableFixedJointLumping>true</disableFixedJointLumping>
-    <implicitSpringDamper>true</implicitSpringDamper>
-    <fudgeFactor>0.0</fudgeFactor>
-  </gazebo>
 </robot>

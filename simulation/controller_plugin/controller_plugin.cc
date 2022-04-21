@@ -3,7 +3,7 @@
 namespace {
 
 constexpr int kNumJoints = 4;
-constexpr double kWheelRadius = 0.05;
+constexpr double kWheelRadius = 0.051;
 const std::string kBaseName = "real_body";  // used in carwheel.urdf
 // const std::string kBaseName = "virtual_body";  // used in carwheel_constraint.urdf
 std::vector<std::string> kJointNames = {"Joint_FR", "Joint_FL", "Joint_HR", "Joint_HL"};
@@ -137,22 +137,19 @@ void WorldControllerPlugin::OnUpdateEnd() {
     }
   } else if (control_mode_ == ControlMode::kNorminalController) {
     // qd_des = v / (2 * pi * R)
-    double qd_des = base_linear_vel_des_.x() / (2 * M_PI * kWheelRadius);
+    double qd_des = base_linear_vel_des_.x() / kWheelRadius;
     for (int i = 0; i < kNumJoints; ++i) {
       q_des_[i] = q_act_[i] + qd_des * control_dt_;
     }
-    fprintf(stderr, "%3.8f %3.8f %3.8f %3.8f %3.8f\n", base_linear_vel_des_.x(), qd_des, q_act_[0], q_des_[0],
-            q_des_[0] - q_act_[0]);
     this->UpdateVelocityApiBasedController();
   } else if (control_mode_ == ControlMode::kMpcController) {
-    double qd_des = base_linear_vel_des_.x() / (2 * M_PI * kWheelRadius);
+    double qd_des = base_linear_vel_des_.x() / kWheelRadius;
     double qdd_des = 0.0;
     for (int i = 0; i < kNumJoints; ++i) {
       qdd_des = (qd_des - qd_act_[i]) / control_dt_;
       tau_des_[i] = 1e-4 * qdd_des;
       tau_des_[i] = 5.0;
     }
-    fprintf(stderr, "%3.8f %3.8f %3.8f %3.8f\n", qd_des, qdd_des, tau_des_[0], q_des_[0] - q_act_[0]);
     this->UpdateForceApiBasedController();
   } else if (control_mode_ == ControlMode::kWbcController) {
     std::cout << "Undefined controller!" << std::endl;
@@ -206,6 +203,7 @@ void WorldControllerPlugin::UpdateSensorsStatus() {
   base_linear_vel_act_.x() = base_link_->WorldLinearVel().X();
   base_linear_vel_act_.y() = base_link_->WorldLinearVel().Y();
   base_linear_vel_act_.z() = base_link_->WorldLinearVel().Z();
+  std::cout << "World velocity: " << base_linear_vel_act_.transpose() << std::endl;
 
   // Confirm whether you need absolute angular velocity(in world frame) or relative angular velocity(in local frame)
   // WorldAngularVel = RotMat * RelativeAngularVel <==> RotMat.transpose() * WorldAngularVel = RelativeAngularVel
@@ -228,7 +226,7 @@ void WorldControllerPlugin::UpdateSensorsStatus() {
   // std::cout << "success update fake IMU sensor status!" << std::endl;
 }
 
-// SetPosition(index, pos, bool)
+// Gazebo的SetPosition似乎有点问题，无法正确下发命令
 // index is the index of the joint axis (degree of freedom), 一般关节自由度都是1，因此index为0
 void WorldControllerPlugin::UpdatePositionApiBasedController() {
   bool set_cmd_success = true;
@@ -240,21 +238,31 @@ void WorldControllerPlugin::UpdatePositionApiBasedController() {
   }
 }
 
-// Velocity API based controller
+// Velocity API based controller, 三种方法设置关节速度期望
+// 1. SetParam
+// this->model->GetJoint("joint_name")->SetParam("fmax", 0, 100.0);
+// this->model->GetJoint("joint_name")->SetParam("vel", 0, 1.0);
+// 2. SetVelocity
+// this->model->GetJoint("joint_name")->SetVelocity(0, 1.0);
+// 3. SetVelocityTarget
+// this->jointController->SetVelocityPID(name, common::PID(100, 0, 0));
+// this->jointController->SetVelocityTarget(name, 1.0);
+// this->jointController->Update(); // must be called every time step to apply forces
 void WorldControllerPlugin::UpdateVelocityApiBasedController() {
   for (int i = 0; i < kNumJoints; ++i) {
-    double vel_limit = joint_list_[i]->GetVelocityLimit(0);
     double pos_lower_limit = joint_list_[i]->LowerLimit(0);
     double pos_upper_limit = joint_list_[i]->UpperLimit(0);
-    double effort_limit = joint_list_[i]->GetEffortLimit(0);
-    joint_list_[i]->SetParam("fmax", 0, effort_limit);
     q_des_[i] = std::clamp(q_des_[i], pos_lower_limit, pos_upper_limit);
-    // Kp is set to 1000 as default ?
-    double vel_input = (q_des_[i] - q_act_[i]) / control_dt_;
-    vel_input = std::clamp(vel_input, -vel_limit, vel_limit);
-    joint_list_[i]->SetParam("vel", 0, vel_input);
-    // // This api dont't work?
-    // joint_list_[i]->SetVelocity(0, vel_input);
+
+    double vel_limit = joint_list_[i]->GetVelocityLimit(0);
+    qd_des_[i] = (q_des_[i] - q_act_[i]) / control_dt_;
+    qd_des_[i] = std::clamp(qd_des_[i], -vel_limit, vel_limit);
+
+    joint_list_[i]->SetVelocity(0, qd_des_[i]);
+    // double effort_limit = joint_list_[i]->GetEffortLimit(0);
+    // joint_list_[i]->SetParam("fmax", 0, effort_limit);
+    // joint_list_[i]->SetParam("vel", 0, qd_des_[i]);
+    // fprintf(stderr, "%d %3.8f %3.8f %3.8f\n", i, qd_des_[i], q_des_[i], q_act_[i]);
   }
 }
 
@@ -283,12 +291,16 @@ bool WorldControllerPlugin::InitModel() {
   if (model_ != NULL) {
     base_link_ = model_->GetLink(kBaseName);
     if (base_link_ == NULL) {
-      std::cout << "failed get base link from model!" << std::endl;
+      std::cerr << "failed get base link from model!" << std::endl;
       return false;
     }
 
     for (int i = 0; i < kNumJoints; ++i) {
       joint_list_[i] = model_->GetJoint(kJointNames[i]);
+      if (joint_list_[i] == NULL) {
+        std::cerr << "failed get joint " << kJointNames[i] << std::endl;
+        return false;
+      }
     }
     std::cout << "success init model!" << std::endl;
     return true;
