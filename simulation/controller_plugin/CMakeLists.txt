@@ -29,7 +29,7 @@ target_link_libraries(controller_plugin_carwheel
   PUBLIC
     ${GAZEBO_LIBRARIES}
     ${roscpp_LIBRARIES}
-    rbdl
+    oatmeal_controller
 )
 
 
@@ -50,5 +50,5 @@ target_link_libraries(controller_plugin_inverted_pendulum
   PUBLIC
     ${GAZEBO_LIBRARIES}
     ${roscpp_LIBRARIES}
-    rbdl
+    oatmeal_controller
 )

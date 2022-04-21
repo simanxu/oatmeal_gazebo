@@ -113,9 +113,6 @@ catkin_package(
 ## Your package locations should be listed before other locations
 list(APPEND ROBOTICS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
-# # Fix controller plugin include error
-# list(APPEND ROBOTICS_INCLUDE_DIR /opt/ros/noetic/include/)
-
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${ROBOTICS_INCLUDE_DIR}
@@ -207,5 +204,6 @@ include_directories(
 # catkin_add_nosetests(test)
 
 ## Add subdirectories
+add_subdirectory(controllers)
 add_subdirectory(third_party)
 add_subdirectory(simulation/controller_plugin)

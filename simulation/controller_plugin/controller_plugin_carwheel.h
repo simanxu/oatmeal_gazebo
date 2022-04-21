@@ -20,7 +20,7 @@
 #include <thread>
 #include <vector>
 
-#include "controllers/io_exchange_data.h"
+#include "controllers/src/io_exchange_data.h"
 #include "third_party/eigen/Eigen/Dense"
 #include "third_party/rbdl/include/rbdl/rbdl.h"
 

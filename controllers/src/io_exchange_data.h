@@ -1,5 +1,7 @@
-#ifndef OATMEAL_GAZEBO_CONTROLLERS_IO_EXCHANGE_DATA_H_
-#define OATMEAL_GAZEBO_CONTROLLERS_IO_EXCHANGE_DATA_H_
+#ifndef SRC_OATMEAL_GAZEBO_CONTROLLERS_SRC_IO_EXCHANGE_DATA_H_
+#define SRC_OATMEAL_GAZEBO_CONTROLLERS_SRC_IO_EXCHANGE_DATA_H_
+
+#include "controllers/src/oatmeal_controller.h"
 
 enum ControlMode {
   kPassive = 0,
@@ -25,4 +27,4 @@ struct ioExchangeData {
   double sim_controller_pos[4];
 };
 
-#endif  // OATMEAL_GAZEBO_CONTROLLERS_IO_EXCHANGE_DATA_H_
+#endif  // SRC_OATMEAL_GAZEBO_CONTROLLERS_SRC_IO_EXCHANGE_DATA_H_
