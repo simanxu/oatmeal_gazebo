@@ -88,8 +88,8 @@
     <limit
       lower="-1000000"
       upper="1000000"
-      effort="100"
-      velocity="1000" />
+      effort="50"
+      velocity="200" />
     <dynamics
       damping="0"
       friction="0" />
@@ -146,8 +146,8 @@
     <limit
       lower="-1000000"
       upper="1000000"
-      effort="100"
-      velocity="1000" />
+      effort="50"
+      velocity="200" />
     <dynamics
       damping="0"
       friction="0" />
@@ -204,8 +204,8 @@
     <limit
       lower="-1000000"
       upper="1000000"
-      effort="100"
-      velocity="1000" />
+      effort="50"
+      velocity="200" />
     <dynamics
       damping="0"
       friction="0" />
@@ -261,8 +261,8 @@
     <limit
       lower="-1000000"
       upper="1000000"
-      effort="100"
-      velocity="1000" />
+      effort="50"
+      velocity="200" />
     <dynamics
       damping="0"
       friction="0" />

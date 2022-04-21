@@ -137,18 +137,15 @@ void WorldControllerPlugin::OnUpdateEnd() {
     }
   } else if (control_mode_ == ControlMode::kNorminalController) {
     // qd_des = v / (2 * pi * R)
-    double qd_des = base_linear_vel_des_.x() / kWheelRadius;
     for (int i = 0; i < kNumJoints; ++i) {
-      q_des_[i] = q_act_[i] + qd_des * control_dt_;
+      qd_des_[i] = base_linear_vel_des_.x() / kWheelRadius;
+      q_des_[i] = q_act_[i] + qd_des_[i] * control_dt_;
     }
     this->UpdateVelocityApiBasedController();
   } else if (control_mode_ == ControlMode::kMpcController) {
-    double qd_des = base_linear_vel_des_.x() / kWheelRadius;
-    double qdd_des = 0.0;
     for (int i = 0; i < kNumJoints; ++i) {
-      qdd_des = (qd_des - qd_act_[i]) / control_dt_;
-      tau_des_[i] = 1e-4 * qdd_des;
-      tau_des_[i] = 5.0;
+      qd_des_[i] = base_linear_vel_des_.x() / kWheelRadius;
+      q_des_[i] = q_act_[i] + qd_des_[i] * control_dt_;
     }
     this->UpdateForceApiBasedController();
   } else if (control_mode_ == ControlMode::kWbcController) {
@@ -268,7 +265,19 @@ void WorldControllerPlugin::UpdateVelocityApiBasedController() {
 
 void WorldControllerPlugin::UpdateForceApiBasedController() {
   for (int i = 0; i < kNumJoints; ++i) {
-    // tau_[i] = result.sim_controller_tau[i];
+    double pos_lower_limit = joint_list_[i]->LowerLimit(0);
+    double pos_upper_limit = joint_list_[i]->UpperLimit(0);
+    q_des_[i] = std::clamp(q_des_[i], pos_lower_limit, pos_upper_limit);
+
+    double vel_limit = joint_list_[i]->GetVelocityLimit(0);
+    qd_des_[i] = std::clamp(qd_des_[i], -vel_limit, vel_limit);
+
+    // Set kp default 1, set kd default 0.05. Large kd will crash
+    tau_des_[i] = 1.0 * (q_des_[i] - q_act_[i]) + 0.05 * (qd_des_[i] - qd_act_[i]);
+
+    double effort_limit = joint_list_[i]->GetEffortLimit(0);
+    tau_des_[i] = std::clamp(tau_des_[i], -effort_limit, effort_limit);
+    fprintf(stderr, "%d %3.8f %3.8f %3.8f %3.8f %3.8f\n", i, tau_des_[i], q_des_[i], q_act_[i], qd_des_[i], qd_act_[i]);
     joint_list_[i]->SetForce(0, tau_des_[i]);
   }
 }
