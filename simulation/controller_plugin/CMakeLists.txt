@@ -12,20 +12,41 @@ include_directories(${std_msgs_INCLUDE_DIRS})
 link_directories(${GAZEBO_LIBRARY_DIRS})
 list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
 
-add_library(controller_plugin_cc SHARED controller_plugin.cc)
+add_library(controller_plugin_carwheel SHARED controller_plugin_carwheel.cc)
 
-target_include_directories(controller_plugin_cc
+target_include_directories(controller_plugin_carwheel
   SYSTEM PRIVATE
     ${GAZEBO_INCLUDE_DIRS}
     ${roscpp_INCLUDE_DIRS}
 )
 
-target_include_directories(controller_plugin_cc
+target_include_directories(controller_plugin_carwheel
   PRIVATE
     ${ROBOTICS_INCLUDE_DIR}
 )
 
-target_link_libraries(controller_plugin_cc
+target_link_libraries(controller_plugin_carwheel
+  PUBLIC
+    ${GAZEBO_LIBRARIES}
+    ${roscpp_LIBRARIES}
+    rbdl
+)
+
+
+add_library(controller_plugin_inverted_pendulum SHARED controller_plugin_inverted_pendulum.cc)
+
+target_include_directories(controller_plugin_inverted_pendulum
+  SYSTEM PRIVATE
+    ${GAZEBO_INCLUDE_DIRS}
+    ${roscpp_INCLUDE_DIRS}
+)
+
+target_include_directories(controller_plugin_inverted_pendulum
+  PRIVATE
+    ${ROBOTICS_INCLUDE_DIR}
+)
+
+target_link_libraries(controller_plugin_inverted_pendulum
   PUBLIC
     ${GAZEBO_LIBRARIES}
     ${roscpp_LIBRARIES}

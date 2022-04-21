@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="inverted_pendulum">
+
+  <link name="world"></link>
+
+  <joint name="virtual_pz_joint" type="prismatic">
+      <parent link="world"/>
+      <child link="virtual_pz_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit effort="100.0" lower="-10.0" upper="10.0" velocity="1000.0"/>
+  </joint>
+
+  <link name="virtual_pz_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.00001" />
+      <inertia
+        ixx="0.00001"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.00001"
+        iyz="0.0"
+        izz="0.00001" />
+    </inertial>
+  </link>
+
+  <joint name="virtual_px_joint" type="prismatic">
+      <parent link="virtual_pz_link"/>
+      <child link="virtual_body"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <limit effort="1000.0" lower="-1000.0" upper="1000.0" velocity="1000.0"/>
+  </joint>
+
+  <link name="virtual_body">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.00001" />
+      <inertia
+        ixx="0.00001"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.00001"
+        iyz="0.0"
+        izz="0.00001" />
+    </inertial>
+  </link>
+
+
+  <joint name="virtual_fixed_joint" type="fixed">
+      <parent link="virtual_body"/>
+      <child link="real_body"/>
+  </joint>
+
+  <link name="real_body">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="5.0" />
+      <inertia
+        ixx="0.00773393995430153"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.0207892752411963"
+        iyz="0.0"
+        izz="0.0275077758026154" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://oatmeal_gazebo/simulation/models/carwheel/meshes/body.STL" />
+      </geometry>
+    </visual>
+  </link>
+  <gazebo reference="real_body">
+    <material>Gazebo/Orange</material>
+  </gazebo>
+
+  <link name="Pendulum">
+    <inertial>
+      <origin
+        xyz="0 0 -0.25"
+        rpy="0 0 0" />
+      <mass
+        value="0.5" />
+      <inertia
+        ixx="1.97040691233152E-05"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="3.86038905273114E-05"
+        iyz="0.0"
+        izz="1.97040691233152E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 -0.25"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.03 0.03 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <gazebo reference="Pendulum">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+
+  <joint name="Joint_Pendulum"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="real_body" />
+    <child
+      link="Pendulum" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1000000"
+      upper="1000000"
+      effort="50"
+      velocity="100" />
+  </joint>
+
+  <link name="FR">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.05" />
+      <inertia
+        ixx="1.97040691233152E-05"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="3.86038905273114E-05"
+        iyz="0.0"
+        izz="1.97040691233152E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5707963267948966 0 0" />
+      <geometry>
+        <cylinder radius="0.05" length="0.01"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5707963267948966 0 0" />
+      <geometry>
+        <cylinder radius="0.051" length="0.0001"/>
+      </geometry>
+    </collision>
+  </link>
+  <gazebo reference="FR">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+
+  <joint
+    name="Joint_FR"
+    type="revolute">
+    <origin
+      xyz="0.095 -0.08 0"
+      rpy="0 0 0" />
+    <parent
+      link="real_body" />
+    <child
+      link="FR" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1000000"
+      upper="1000000"
+      effort="50"
+      velocity="100" />
+  </joint>
+
+  <link name="FL">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.05" />
+      <inertia
+        ixx="1.97040691233152E-05"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="3.86038905273114E-05"
+        iyz="0.0"
+        izz="1.97040691233152E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5707963267948966 0 0" />
+      <geometry>
+        <cylinder radius="0.05" length="0.01"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5707963267948966 0 0" />
+      <geometry>
+        <cylinder radius="0.051" length="0.0001"/>
+      </geometry>
+    </collision>
+  </link>
+  <gazebo reference="FL">
+    <material>Gazebo/Green</material>
+  </gazebo>
+
+  <joint name="Joint_FL"
+    type="revolute">
+    <origin
+      xyz="0.095 0.08 0"
+      rpy="0 0 0" />
+    <parent
+      link="real_body" />
+    <child
+      link="FL" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1000000"
+      upper="1000000"
+      effort="50"
+      velocity="100" />
+  </joint>
+
+  <link name="HR">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.05" />
+      <inertia
+        ixx="1.97040691233152E-05"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="3.86038905273114E-05"
+        iyz="0.0"
+        izz="1.97040691233152E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5707963267948966 0 0" />
+      <geometry>
+        <cylinder radius="0.05" length="0.01"/>/
+      </geometry>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5707963267948966 0 0" />
+      <geometry>
+        <cylinder radius="0.051" length="0.0001"/>
+      </geometry>
+    </collision>
+  </link>
+  <gazebo reference="HR">
+    <material>Gazebo/Yellow</material>
+  </gazebo>
+
+  <joint name="Joint_HR"
+    type="revolute">
+    <origin
+      xyz="-0.115 -0.08 0"
+      rpy="0 0 0" />
+    <parent
+      link="real_body" />
+    <child
+      link="HR" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1000000"
+      upper="1000000"
+      effort="50"
+      velocity="100" />
+  </joint>
+
+  <link name="HL">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.05" />
+      <inertia
+        ixx="1.97040691233152E-05"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="3.86038905273114E-05"
+        iyz="0.0"
+        izz="1.97040691233152E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5707963267948966 0 0" />
+      <geometry>
+        <cylinder radius="0.05" length="0.01"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5707963267948966 0 0" />
+      <geometry>
+        <cylinder radius="0.051" length="0.0001"/>
+      </geometry>
+    </collision>
+  </link>
+  <gazebo reference="HL">
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <joint name="Joint_HL"
+    type="revolute">
+    <origin
+      xyz="-0.115 0.08 0"
+      rpy="0 0 0" />
+    <parent
+      link="real_body" />
+    <child
+      link="HL" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1000000"
+      upper="1000000"
+      effort="50"
+      velocity="100" />
+  </joint>
+</robot>

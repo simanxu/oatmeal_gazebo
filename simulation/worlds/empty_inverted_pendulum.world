@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.6">
-  <world name="CarWheelWorld">
+  <world name="InvertedPendulumWorld">
     <physics type="ode">
       <ode>
         <solver>
@@ -70,5 +70,6 @@
         <gravity>1</gravity>
       </link>
     </model>
+    <plugin name="controller_plugin_inverted_pendulum" filename="libcontroller_plugin_inverted_pendulum.so"/>
   </world>
 </sdf>

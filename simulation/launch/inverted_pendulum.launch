@@ -5,7 +5,7 @@
   <arg name="paused" default="false" />
   <arg name="use_sim_time" default="true" />
   <arg name="urdf_name" value="carwheel" />
-  <arg name="world_name" value="$(find oatmeal_gazebo)/simulation/worlds/empty.world" />
+  <arg name="world_name" value="$(find oatmeal_gazebo)/simulation/worlds/empty_inverted_pendulum.world" />
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
           <arg name="world_name" value="$(arg world_name)" />
@@ -16,7 +16,7 @@
           <arg name="physics" value="ode" />
           <arg name="verbose" value="true" />
   </include>
-  <node name="carwheel" pkg="gazebo_ros" type="spawn_model" args="-file $(find oatmeal_gazebo)/simulation/models/carwheel/urdf/carwheel.urdf
+  <node name="carwheel" pkg="gazebo_ros" type="spawn_model" args="-file $(find oatmeal_gazebo)/simulation/models/inverted_pendulum/urdf/inverted_pendulum.urdf
         -urdf
         -model $(arg urdf_name)
         -x 0

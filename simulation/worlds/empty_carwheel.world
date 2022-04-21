@@ -70,5 +70,6 @@
         <gravity>1</gravity>
       </link>
     </model>
+    <plugin name="controller_plugin_carwheel" filename="libcontroller_plugin_carwheel.so"/>
   </world>
 </sdf>
