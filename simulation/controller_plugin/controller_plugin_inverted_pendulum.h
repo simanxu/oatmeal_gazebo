@@ -1,5 +1,5 @@
-#ifndef SRC_OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_INVERTED_PENDULUM_H_
-#define SRC_OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_INVERTED_PENDULUM_H_
+#ifndef OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_INVERTED_PENDULUM_H_
+#define OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_INVERTED_PENDULUM_H_
 
 #include <ros/callback_queue.h>
 #include <ros/publisher.h>
@@ -16,11 +16,13 @@
 #include <gazebo/transport/transport.hh>
 
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
 
 #include "controllers/src/io_exchange_data.h"
+#include "controllers/src/oatmeal_controller.h"
 #include "third_party/eigen/Eigen/Dense"
 #include "third_party/rbdl/include/rbdl/rbdl.h"
 
@@ -107,10 +109,13 @@ class WorldControllerPlugin : public WorldPlugin {
 
   // Control mode
   unsigned int control_mode_;
+
+  // Controllers
+  std::unique_ptr<OatmealController> oatmeal_;
 };
 
 // 向Gazebo注册本插件
 GZ_REGISTER_WORLD_PLUGIN(WorldControllerPlugin);
 }  // namespace gazebo
 
-#endif  // SRC_OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_INVERTED_PENDULUM_H_
+#endif  // OATMEAL_GAZEBO_SIMULATION_CONTROLLER_PLUGIN_CONTROLLER_PLUGIN_INVERTED_PENDULUM_H_

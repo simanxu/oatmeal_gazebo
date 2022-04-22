@@ -206,4 +206,5 @@ include_directories(
 ## Add subdirectories
 add_subdirectory(controllers)
 add_subdirectory(third_party)
+add_subdirectory(input_tools)
 add_subdirectory(simulation/controller_plugin)

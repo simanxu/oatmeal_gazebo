@@ -29,6 +29,9 @@ WorldControllerPlugin::WorldControllerPlugin() {
     tau_des_[i] = 0.0;
     joint_list_[i] = NULL;
   }
+
+  oatmeal_ = std::make_unique<OatmealController>();
+
   std::cout << "Hello World!" << std::endl;
 }
 
@@ -136,6 +139,7 @@ void WorldControllerPlugin::OnUpdateEnd() {
     }
   } else if (control_mode_ == ControlMode::kNorminalController) {
     // qd_des = v / (2 * pi * R)
+    oatmeal_->Test();
     for (int i = 0; i < kNumJoints; ++i) {
       qd_des_[i] = base_linear_vel_des_.x() / kWheelRadius;
       q_des_[i] = q_act_[i] + qd_des_[i] * control_dt_;
@@ -276,7 +280,8 @@ void WorldControllerPlugin::UpdateForceApiBasedController() {
 
     double effort_limit = joint_list_[i]->GetEffortLimit(0);
     tau_des_[i] = std::clamp(tau_des_[i], -effort_limit, effort_limit);
-    fprintf(stderr, "%d %3.8f %3.8f %3.8f %3.8f %3.8f\n", i, tau_des_[i], q_des_[i], q_act_[i], qd_des_[i], qd_act_[i]);
+    // fprintf(stderr, "%d %3.8f %3.8f %3.8f %3.8f %3.8f\n", i, tau_des_[i], q_des_[i], q_act_[i], qd_des_[i],
+    // qd_act_[i]);
     joint_list_[i]->SetForce(0, tau_des_[i]);
   }
 }
