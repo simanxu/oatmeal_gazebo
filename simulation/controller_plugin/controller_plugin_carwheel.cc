@@ -1,8 +1,7 @@
 #include "simulation/controller_plugin/controller_plugin_carwheel.h"
 
 namespace {
-
-constexpr int kNumJoints = 4;
+constexpr int kCarWheelNumJoints = 4;
 constexpr double kWheelRadius = 0.051;
 const std::string kBaseName = "real_body";  // used in carwheel.urdf
 // const std::string kBaseName = "virtual_body";  // used in carwheel_constraint.urdf
@@ -11,16 +10,16 @@ std::vector<std::string> kJointNames = {"Joint_FR", "Joint_FL", "Joint_HR", "Joi
 
 namespace gazebo {
 WorldControllerPlugin::WorldControllerPlugin() {
-  q_act_ = new double[kNumJoints];
-  qd_act_ = new double[kNumJoints];
-  tau_act_ = new double[kNumJoints];
+  q_act_ = new double[kCarWheelNumJoints];
+  qd_act_ = new double[kCarWheelNumJoints];
+  tau_act_ = new double[kCarWheelNumJoints];
 
-  q_des_ = new double[kNumJoints];
-  qd_des_ = new double[kNumJoints];
-  tau_des_ = new double[kNumJoints];
+  q_des_ = new double[kCarWheelNumJoints];
+  qd_des_ = new double[kCarWheelNumJoints];
+  tau_des_ = new double[kCarWheelNumJoints];
 
-  joint_list_ = new physics::JointPtr[kNumJoints];
-  for (int i = 0; i < kNumJoints; ++i) {
+  joint_list_ = new physics::JointPtr[kCarWheelNumJoints];
+  for (int i = 0; i < kCarWheelNumJoints; ++i) {
     q_act_[i] = 0.0;
     qd_act_[i] = 0.0;
     tau_act_[i] = 0.0;
@@ -132,18 +131,18 @@ void WorldControllerPlugin::OnUpdateEnd() {
   // Exchange control and sensor data between controller and gazebo
   // ioExchangeData result = this->updateFSMcontroller();
   if (control_mode_ == ControlMode::kPassive) {
-    for (int i = 0; i < kNumJoints; ++i) {
+    for (int i = 0; i < kCarWheelNumJoints; ++i) {
       q_des_[i] = q_act_[i];
     }
   } else if (control_mode_ == ControlMode::kNorminalController) {
     // qd_des = v / (2 * pi * R)
-    for (int i = 0; i < kNumJoints; ++i) {
+    for (int i = 0; i < kCarWheelNumJoints; ++i) {
       qd_des_[i] = base_linear_vel_des_.x() / kWheelRadius;
       q_des_[i] = q_act_[i] + qd_des_[i] * control_dt_;
     }
     this->UpdateVelocityApiBasedController();
   } else if (control_mode_ == ControlMode::kMpcController) {
-    for (int i = 0; i < kNumJoints; ++i) {
+    for (int i = 0; i < kCarWheelNumJoints; ++i) {
       qd_des_[i] = base_linear_vel_des_.x() / kWheelRadius;
       q_des_[i] = q_act_[i] + qd_des_[i] * control_dt_;
     }
@@ -161,7 +160,7 @@ void WorldControllerPlugin::OnUpdateEnd() {
 void WorldControllerPlugin::UpdateSensorsStatus() {
   // Update joint sensors status
   bool is_sensor_return_nan = false;
-  for (int i = 0; i < kNumJoints; ++i) {
+  for (int i = 0; i < kCarWheelNumJoints; ++i) {
     q_act_[i] = joint_list_[i]->Position(0);
     qd_act_[i] = joint_list_[i]->GetVelocity(0);
     tau_act_[i] = joint_list_[i]->GetForce(0);
@@ -227,7 +226,7 @@ void WorldControllerPlugin::UpdateSensorsStatus() {
 // index is the index of the joint axis (degree of freedom), 一般关节自由度都是1，因此index为0
 void WorldControllerPlugin::UpdatePositionApiBasedController() {
   bool set_cmd_success = true;
-  for (int i = 0; i < kNumJoints; ++i) {
+  for (int i = 0; i < kCarWheelNumJoints; ++i) {
     set_cmd_success = joint_list_[i]->SetPosition(0, q_des_[i], false);
     if (!set_cmd_success) {
       std::cout << "set position cmd failed at joint " << i << std::endl;
@@ -246,7 +245,7 @@ void WorldControllerPlugin::UpdatePositionApiBasedController() {
 // this->jointController->SetVelocityTarget(name, 1.0);
 // this->jointController->Update(); // must be called every time step to apply forces
 void WorldControllerPlugin::UpdateVelocityApiBasedController() {
-  for (int i = 0; i < kNumJoints; ++i) {
+  for (int i = 0; i < kCarWheelNumJoints; ++i) {
     double pos_lower_limit = joint_list_[i]->LowerLimit(0);
     double pos_upper_limit = joint_list_[i]->UpperLimit(0);
     q_des_[i] = std::clamp(q_des_[i], pos_lower_limit, pos_upper_limit);
@@ -264,7 +263,7 @@ void WorldControllerPlugin::UpdateVelocityApiBasedController() {
 }
 
 void WorldControllerPlugin::UpdateForceApiBasedController() {
-  for (int i = 0; i < kNumJoints; ++i) {
+  for (int i = 0; i < kCarWheelNumJoints; ++i) {
     double pos_lower_limit = joint_list_[i]->LowerLimit(0);
     double pos_upper_limit = joint_list_[i]->UpperLimit(0);
     q_des_[i] = std::clamp(q_des_[i], pos_lower_limit, pos_upper_limit);
@@ -304,7 +303,7 @@ bool WorldControllerPlugin::InitModel() {
       return false;
     }
 
-    for (int i = 0; i < kNumJoints; ++i) {
+    for (int i = 0; i < kCarWheelNumJoints; ++i) {
       joint_list_[i] = model_->GetJoint(kJointNames[i]);
       if (joint_list_[i] == NULL) {
         std::cerr << "failed get joint " << kJointNames[i] << std::endl;
