@@ -87,52 +87,6 @@
     <material>Gazebo/Orange</material>
   </gazebo>
 
-  <link name="Pendulum">
-    <inertial>
-      <origin
-        xyz="0 0 -0.25"
-        rpy="0 0 0" />
-      <mass
-        value="0.5" />
-      <inertia
-        ixx="1.97E-05"
-        ixy="0.0"
-        ixz="0.0"
-        iyy="3.86E-05"
-        iyz="0.0"
-        izz="1.97E-05" />
-    </inertial>
-    <visual>
-      <origin
-        xyz="0 0 -0.25"
-        rpy="0 0 0" />
-      <geometry>
-        <box size="0.03 0.03 0.5"/>
-      </geometry>
-    </visual>
-  </link>
-  <gazebo reference="Pendulum">
-    <material>Gazebo/Blue</material>
-  </gazebo>
-
-  <joint name="Joint_Pendulum"
-    type="revolute">
-    <origin
-      xyz="0 0 0"
-      rpy="0 0 0" />
-    <parent
-      link="real_body" />
-    <child
-      link="Pendulum" />
-    <axis
-      xyz="0 1 0" />
-    <limit
-      lower="-1000000"
-      upper="1000000"
-      effort="50"
-      velocity="100" />
-  </joint>
-
   <link name="FR">
     <inertial>
       <origin
@@ -341,6 +295,52 @@
       link="real_body" />
     <child
       link="HL" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1000000"
+      upper="1000000"
+      effort="50"
+      velocity="100" />
+  </joint>
+
+  <link name="Pendulum">
+    <inertial>
+      <origin
+        xyz="0 0 -0.25"
+        rpy="0 0 0" />
+      <mass
+        value="0.5" />
+      <inertia
+        ixx="1.97E-05"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="3.86E-05"
+        iyz="0.0"
+        izz="1.97E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 -0.25"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.03 0.03 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <gazebo reference="Pendulum">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+
+  <joint name="Joint_Pendulum"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="real_body" />
+    <child
+      link="Pendulum" />
     <axis
       xyz="0 1 0" />
     <limit

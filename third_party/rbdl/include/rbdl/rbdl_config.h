@@ -1,4 +1,3 @@
-// Copyright 2021 Tencent.
 #ifndef RBDL_CONFIG_H_
 #define RBDL_CONFIG_H_
 

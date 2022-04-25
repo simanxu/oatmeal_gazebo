@@ -2,7 +2,6 @@
 
 namespace {
 constexpr int kCarWheelNumJoints = 4;
-constexpr double kWheelRadius = 0.051;
 const std::string kBaseName = "real_body";  // used in carwheel.urdf
 // const std::string kBaseName = "virtual_body";  // used in carwheel_constraint.urdf
 std::vector<std::string> kJointNames = {"Joint_FR", "Joint_FL", "Joint_HR", "Joint_HL"};

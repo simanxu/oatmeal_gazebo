@@ -1,24 +1,22 @@
 #include "simulation/controller_plugin/controller_plugin_inverted_pendulum.h"
 
 namespace {
-constexpr int kCarPendulumNumJoints = 5;
-constexpr double kWheelRadius = 0.051;
 const std::string kBaseName = "virtual_body";
-std::vector<std::string> kJointNames = {"Joint_Pendulum", "Joint_FR", "Joint_FL", "Joint_HR", "Joint_HL"};
+std::vector<std::string> kJointNames = {"Joint_FR", "Joint_FL", "Joint_HR", "Joint_HL", "Joint_Pendulum"};
 }  // namespace
 
 namespace gazebo {
 WorldControllerPlugin::WorldControllerPlugin() {
-  q_act_ = new double[kCarPendulumNumJoints];
-  qd_act_ = new double[kCarPendulumNumJoints];
-  tau_act_ = new double[kCarPendulumNumJoints];
+  q_act_ = new double[kNumJoints];
+  qd_act_ = new double[kNumJoints];
+  tau_act_ = new double[kNumJoints];
 
-  q_des_ = new double[kCarPendulumNumJoints];
-  qd_des_ = new double[kCarPendulumNumJoints];
-  tau_des_ = new double[kCarPendulumNumJoints];
+  q_des_ = new double[kNumJoints];
+  qd_des_ = new double[kNumJoints];
+  tau_des_ = new double[kNumJoints];
 
-  joint_list_ = new physics::JointPtr[kCarPendulumNumJoints];
-  for (int i = 0; i < kCarPendulumNumJoints; ++i) {
+  joint_list_ = new physics::JointPtr[kNumJoints];
+  for (int i = 0; i < kNumJoints; ++i) {
     q_act_[i] = 0.0;
     qd_act_[i] = 0.0;
     tau_act_[i] = 0.0;
@@ -133,37 +131,44 @@ void WorldControllerPlugin::OnUpdateEnd() {
   // Exchange control and sensor data between controller and gazebo
   // ioExchangeData result = this->updateFSMcontroller();
   if (control_mode_ == ControlMode::kPassive) {
-    for (int i = 0; i < kCarPendulumNumJoints; ++i) {
+    for (int i = 0; i < kNumJoints; ++i) {
       q_des_[i] = q_act_[i];
     }
   } else if (control_mode_ == ControlMode::kNorminalController) {
     // qd_des = v / (2 * pi * R)
-    for (int i = 0; i < kCarPendulumNumJoints; ++i) {
+    for (int i = 0; i < kNumJoints; ++i) {
       qd_des_[i] = base_linear_vel_des_.x() / kWheelRadius;
       q_des_[i] = q_act_[i] + qd_des_[i] * control_dt_;
     }
     this->UpdateVelocityApiBasedController();
   } else if (control_mode_ == ControlMode::kMpcController) {
-    for (int i = 0; i < kCarPendulumNumJoints; ++i) {
+    for (int i = 0; i < kNumJoints; ++i) {
       qd_des_[i] = base_linear_vel_des_.x() / kWheelRadius;
       q_des_[i] = q_act_[i] + qd_des_[i] * control_dt_;
     }
     this->UpdateForceApiBasedController();
   } else if (control_mode_ == ControlMode::kWbcController) {
-    oatmeal_->Test();
-    rbdl_math::VectorNd torque_command(kCarPendulumNumJoints);
     rbdl_math::VectorNd q = rbdl_math::VectorNd::Zero(12);
-    rbdl_math::VectorNd qd = rbdl_math::VectorNd::Zero(11);
     q.segment(0, 3) = base_xyz_act_;
     q.segment(3, 3) = base_quat_act_.vec();
-    q(10) = base_quat_act_.w();
-    rbdl_math::VectorNd qdd_des = rbdl_math::VectorNd::Zero(11);
-    oatmeal_->RunController(q, qd, qdd_des, torque_command);
-    tau_des_[0] = torque_command[6];
-    tau_des_[1] = torque_command[7];
-    tau_des_[2] = torque_command[8];
-    tau_des_[3] = torque_command[9];
-    tau_des_[4] = torque_command[10];
+    q(11) = base_quat_act_.w();
+    rbdl_math::VectorNd qd = rbdl_math::VectorNd::Zero(11);
+    qd.segment(0, 3) = base_linear_vel_act_;
+    qd.segment(3, 3) = base_angular_vel_act_;  // in world frame
+    for (int i = 0; i < kNumJoints; ++i) {
+      q(6 + i) = q_act_[i];
+      qd(6 + i) = qd_act_[i];
+    }
+    rbdl_math::VectorNd qdd_task = rbdl_math::VectorNd::Zero(11);
+    qdd_task(0) = 1 * (base_linear_vel_des_.x() - base_angular_vel_act_.x());
+
+    rbdl_math::VectorNd torque_command(kNumJoints);
+    oatmeal_->RunController(q, qd, qdd_task, torque_command);
+    tau_des_[0] = torque_command[0];
+    tau_des_[1] = torque_command[1];
+    tau_des_[2] = torque_command[2];
+    tau_des_[3] = torque_command[3];
+    tau_des_[4] = torque_command[4];
     this->UpdateForceApiBasedController();
   }
 
@@ -176,7 +181,7 @@ void WorldControllerPlugin::OnUpdateEnd() {
 void WorldControllerPlugin::UpdateSensorsStatus() {
   // Update joint sensors status
   bool is_sensor_return_nan = false;
-  for (int i = 0; i < kCarPendulumNumJoints; ++i) {
+  for (int i = 0; i < kNumJoints; ++i) {
     q_act_[i] = joint_list_[i]->Position(0);
     qd_act_[i] = joint_list_[i]->GetVelocity(0);
     tau_act_[i] = joint_list_[i]->GetForce(0);
@@ -234,6 +239,7 @@ void WorldControllerPlugin::UpdateSensorsStatus() {
   base_linear_acc_act_.x() = base_link_->WorldLinearAccel().X();
   base_linear_acc_act_.y() = base_link_->WorldLinearAccel().Y();
   base_linear_acc_act_.z() = base_link_->WorldLinearAccel().Z();
+  // std::cout << "World acceleration: " << base_linear_acc_act_.transpose() << std::endl;
 
   // std::cout << "success update fake IMU sensor status!" << std::endl;
 }
@@ -242,7 +248,7 @@ void WorldControllerPlugin::UpdateSensorsStatus() {
 // index is the index of the joint axis (degree of freedom), 一般关节自由度都是1，因此index为0
 void WorldControllerPlugin::UpdatePositionApiBasedController() {
   bool set_cmd_success = true;
-  for (int i = 0; i < kCarPendulumNumJoints; ++i) {
+  for (int i = 0; i < kNumJoints; ++i) {
     set_cmd_success = joint_list_[i]->SetPosition(0, q_des_[i], false);
     if (!set_cmd_success) {
       std::cout << "set position cmd failed at joint " << i << std::endl;
@@ -261,7 +267,7 @@ void WorldControllerPlugin::UpdatePositionApiBasedController() {
 // this->jointController->SetVelocityTarget(name, 1.0);
 // this->jointController->Update(); // must be called every time step to apply forces
 void WorldControllerPlugin::UpdateVelocityApiBasedController() {
-  for (int i = 0; i < kCarPendulumNumJoints; ++i) {
+  for (int i = 0; i < kNumJoints; ++i) {
     double pos_lower_limit = joint_list_[i]->LowerLimit(0);
     double pos_upper_limit = joint_list_[i]->UpperLimit(0);
     q_des_[i] = std::clamp(q_des_[i], pos_lower_limit, pos_upper_limit);
@@ -279,21 +285,9 @@ void WorldControllerPlugin::UpdateVelocityApiBasedController() {
 }
 
 void WorldControllerPlugin::UpdateForceApiBasedController() {
-  for (int i = 0; i < kCarPendulumNumJoints; ++i) {
-    double pos_lower_limit = joint_list_[i]->LowerLimit(0);
-    double pos_upper_limit = joint_list_[i]->UpperLimit(0);
-    q_des_[i] = std::clamp(q_des_[i], pos_lower_limit, pos_upper_limit);
-
-    double vel_limit = joint_list_[i]->GetVelocityLimit(0);
-    qd_des_[i] = std::clamp(qd_des_[i], -vel_limit, vel_limit);
-
-    // Set kp default 1, set kd default 0.05. Large kd will crash
-    tau_des_[i] = 1.0 * (q_des_[i] - q_act_[i]) + 0.05 * (qd_des_[i] - qd_act_[i]);
-
+  for (int i = 0; i < kNumJoints; ++i) {
     double effort_limit = joint_list_[i]->GetEffortLimit(0);
     tau_des_[i] = std::clamp(tau_des_[i], -effort_limit, effort_limit);
-    // fprintf(stderr, "%d %3.8f %3.8f %3.8f %3.8f %3.8f\n", i, tau_des_[i], q_des_[i], q_act_[i], qd_des_[i],
-    // qd_act_[i]);
     joint_list_[i]->SetForce(0, tau_des_[i]);
   }
 }
@@ -320,7 +314,7 @@ bool WorldControllerPlugin::InitModel() {
       return false;
     }
 
-    for (int i = 0; i < kCarPendulumNumJoints; ++i) {
+    for (int i = 0; i < kNumJoints; ++i) {
       joint_list_[i] = model_->GetJoint(kJointNames[i]);
       if (joint_list_[i] == NULL) {
         std::cerr << "failed get joint " << kJointNames[i] << std::endl;
