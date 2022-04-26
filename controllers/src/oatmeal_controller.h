@@ -58,6 +58,7 @@ class OatmealController {
   void UpdateMassMatrixCRBA(const rbdl_math::VectorNd& q);
   void UpdateNonlinearBiasRNEA(const rbdl_math::VectorNd& q, const rbdl_math::VectorNd& qd);
   void UpdateWheelContactJacobian(const rbdl_math::VectorNd& q, const rbdl_math::VectorNd& qd);
+  void UpdateWheelContactJacobianByContactPoint(const rbdl_math::VectorNd& q, const rbdl_math::VectorNd& qd);
 
   rbdl_math::MatrixNd GetMassMatrix() { return this->H_; }
   rbdl_math::VectorNd GetGravityBias() { return this->G_; }
@@ -79,14 +80,6 @@ class OatmealController {
   rbdl_math::Matrix3d RotMat_BodyInWorld_;
   rbdl_math::MatrixNd ContactJacobian_;
   rbdl_math::VectorNd ContactJacobianDotQDot_;
-  rbdl_math::MatrixNd WheelFRJacobian_;
-  rbdl_math::VectorNd WheelFRJDotQDot_;
-  rbdl_math::MatrixNd WheelFLJacobian_;
-  rbdl_math::VectorNd WheelFLJDotQDot_;
-  rbdl_math::MatrixNd WheelHRJacobian_;
-  rbdl_math::VectorNd WheelHRJDotQDot_;
-  rbdl_math::MatrixNd WheelHLJacobian_;
-  rbdl_math::VectorNd WheelHLJDotQDot_;
 };
 
 #endif  // OATMEAL_GAZEBO_CONTROLLERS_SRC_OATMEAL_CONTROLLER_H_

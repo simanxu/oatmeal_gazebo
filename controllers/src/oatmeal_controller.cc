@@ -1,5 +1,6 @@
 #include "controllers/src/oatmeal_controller.h"
 
+#include <chrono>
 #include <iostream>
 
 #include "controllers/src/math_tools.h"
@@ -24,10 +25,11 @@ bool OatmealController::Test() {
 
 void OatmealController::RunController(const rbdl_math::VectorNd& q, const rbdl_math::VectorNd& qd,
                                       const rbdl_math::VectorNd& qdd_task, rbdl_math::VectorNd& torque_command) {
+  torque_command.setZero();
   this->UpdateMassMatrixCRBA(q);
   this->UpdateNonlinearBiasRNEA(q, qd);
   this->UpdateWheelContactJacobian(q, qd);
-  // torque_command = this->CalculateInverseDynamic(q, qd, qdd_task);
+  // this->UpdateWheelContactJacobianByContactPoint(q, qd);
   torque_command = this->CalculateDynamicWithConstraints(q, qd, qdd_task);
 }
 
@@ -149,7 +151,9 @@ void OatmealController::UpdateNonlinearBiasRNEA(const rbdl_math::VectorNd& q, co
 // rbdl::CalcPointJacobian6D
 // the first 3 rows are rotational
 // the last 3 rows are translational
+// Computational time for four wheels 1.42ms
 void OatmealController::UpdateWheelContactJacobian(const rbdl_math::VectorNd& q, const rbdl_math::VectorNd& qd) {
+  // auto tic = std::chrono::system_clock::now();
   for (unsigned int wheel : {kWheelFR, kWheelFL, kWheelHR, kWheelHL}) {
     // Calculate Jacobian of the center of the wheel
     rbdl_math::MatrixNd JacobianWheel6D = rbdl_math::MatrixNd::Zero(kSixDims, robot_dof_);
@@ -182,16 +186,6 @@ void OatmealController::UpdateWheelContactJacobian(const rbdl_math::VectorNd& q,
     rbdl_math::Vector3d JacobianContactDotQDot =
         JacobianWheelDotQDot6D.bottomRows(kThreeDims) + skew_OmegaWheel * skew_OmegaWheel * rwc;
 
-    // // Verify JacobianContact and JacobianContactDotQDot, 只针对初始位置有效
-    // rbdl_math::MatrixNd JacobianWheelV = rbdl_math::MatrixNd::Zero(kThreeDims, robot_dof_);
-    // rbdl_math::Vector3d contact_point(0.0, 0.0, -kWheelRadius);
-    // rbdl::CalcPointJacobian(*robot_, q, link_id, contact_point, JacobianWheelV);
-    // rbdl_math::SpatialVector JacobianWheelDotQDot6DV = rbdl_math::SpatialVector::Zero();
-    // JacobianWheelDotQDot6DV = rbdl::CalcPointAcceleration6D(*robot_, q, qd, qdd_zero, link_id, contact_point);
-    // std::cout << "Error JacobianContact: " << (JacobianWheelV - JacobianContact).norm() << std::endl;
-    // std::cout << "Error JacobianContactDotQDot: "
-    //           << (JacobianContactDotQDot - JacobianWheelDotQDot6DV.bottomRows(kThreeDims)).norm() << std::endl;
-
     int nrows = (wheel - 1) * kNumConstraintDimsPerWheel;
     ContactJacobian_.row(nrows) = JacobianContact.row(0);             // x
     ContactJacobian_.row(nrows + 1) = JacobianContact.row(2);         // z
@@ -199,6 +193,49 @@ void OatmealController::UpdateWheelContactJacobian(const rbdl_math::VectorNd& q,
     ContactJacobianDotQDot_(nrows + 1) = JacobianContactDotQDot.z();  // z
   }
   // std::cout << "Update contact Jacobian matrix J pass" << std::endl;
+  // auto toc = std::chrono::system_clock::now();
+  // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(toc - tic);
+  // double time = static_cast<double>(duration.count() * 1000) * std::chrono::microseconds::period::num /
+  //               std::chrono::microseconds::period::den;
+  // std::cout << "Time consume through wheel Jacobian: " << time << std::endl;
+}
+
+// Computational time for four wheels 1.35ms
+void OatmealController::UpdateWheelContactJacobianByContactPoint(const rbdl_math::VectorNd& q,
+                                                                 const rbdl_math::VectorNd& qd) {
+  // auto tic = std::chrono::system_clock::now();
+  for (unsigned int wheel : {kWheelFR, kWheelFL, kWheelHR, kWheelHL}) {
+    // Calculate contact point position wrt wheel cooridinate
+    double theta = q(wheel + 5);
+    rbdl_math::Vector3d contact_point(kWheelRadius * std::sin(theta), 0.0, -kWheelRadius * std::cos(theta));
+
+    // Calculate Jacobian of the contact point of the wheel
+    int link_id = robot_->GetBodyId(link_name_[wheel].c_str());
+    rbdl_math::MatrixNd JacobianContact = rbdl_math::MatrixNd::Zero(kThreeDims, robot_dof_);
+    rbdl::CalcPointJacobian(*robot_, q, link_id, contact_point, JacobianContact);
+
+    // Calculate JacobianDot * QDot of the contact point of the wheel
+    rbdl_math::VectorNd qdd_zero = rbdl_math::VectorNd::Zero(robot_dof_);
+    rbdl_math::SpatialVector JacobianWheelDotQDot6D = rbdl_math::SpatialVector::Zero();
+    JacobianWheelDotQDot6D = rbdl::CalcPointAcceleration6D(*robot_, q, qd, qdd_zero, link_id, contact_point);
+    rbdl_math::Vector3d JacobianContactDotQDot = JacobianWheelDotQDot6D.tail(kThreeDims);
+
+    int nrows = (wheel - 1) * kNumConstraintDimsPerWheel;
+    // std::cout << "Error: " << (JacobianContact.row(0) - ContactJacobian_.row(nrows)).norm() << " "
+    //           << (JacobianContact.row(2) - ContactJacobian_.row(nrows + 1)).norm() << " "
+    //           << JacobianContactDotQDot.x() - ContactJacobianDotQDot_(nrows) << " "
+    //           << JacobianContactDotQDot.z() - ContactJacobianDotQDot_(nrows + 1) << std::endl;
+    ContactJacobian_.row(nrows) = JacobianContact.row(0);             // x
+    ContactJacobian_.row(nrows + 1) = JacobianContact.row(2);         // z
+    ContactJacobianDotQDot_(nrows) = JacobianContactDotQDot.x();      // x
+    ContactJacobianDotQDot_(nrows + 1) = JacobianContactDotQDot.z();  // z
+  }
+  // std::cout << "Update contact Jacobian matrix J pass" << std::endl;
+  // auto toc = std::chrono::system_clock::now();
+  // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(toc - tic);
+  // double time = static_cast<double>(duration.count() * 1000) * std::chrono::microseconds::period::num /
+  //               std::chrono::microseconds::period::den;
+  // std::cout << "Time consume by contact point: " << time << std::endl;
 }
 
 bool OatmealController::InitDynamicModel() {
@@ -256,13 +293,5 @@ bool OatmealController::InitDynamicMatrix() {
   qdd_.setZero(robot_dof_);
   ContactJacobian_.setZero(kNumConstraintDimsPerWheel * kNumWheels, robot_dof_);
   ContactJacobianDotQDot_.setZero(kNumConstraintDimsPerWheel * kNumWheels);
-  WheelFRJacobian_.setZero(kNumConstraintDimsPerWheel, robot_dof_);
-  WheelFLJacobian_.setZero(kNumConstraintDimsPerWheel, robot_dof_);
-  WheelHRJacobian_.setZero(kNumConstraintDimsPerWheel, robot_dof_);
-  WheelHLJacobian_.setZero(kNumConstraintDimsPerWheel, robot_dof_);
-  WheelFRJDotQDot_.setZero(kNumConstraintDimsPerWheel);
-  WheelFLJDotQDot_.setZero(kNumConstraintDimsPerWheel);
-  WheelHRJDotQDot_.setZero(kNumConstraintDimsPerWheel);
-  WheelHLJDotQDot_.setZero(kNumConstraintDimsPerWheel);
   return true;
 }

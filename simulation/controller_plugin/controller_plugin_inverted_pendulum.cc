@@ -164,11 +164,9 @@ void WorldControllerPlugin::OnUpdateEnd() {
 
     rbdl_math::VectorNd torque_command(kNumJoints);
     oatmeal_->RunController(q, qd, qdd_task, torque_command);
-    tau_des_[0] = torque_command[0];
-    tau_des_[1] = torque_command[1];
-    tau_des_[2] = torque_command[2];
-    tau_des_[3] = torque_command[3];
-    tau_des_[4] = torque_command[4];
+    for (int i = 0; i < kNumJoints; ++i) {
+      tau_des_[i] = torque_command[i];
+    }
     this->UpdateForceApiBasedController();
   }
 
@@ -220,7 +218,7 @@ void WorldControllerPlugin::UpdateSensorsStatus() {
   base_linear_vel_act_.x() = base_link_->WorldLinearVel().X();
   base_linear_vel_act_.y() = base_link_->WorldLinearVel().Y();
   base_linear_vel_act_.z() = base_link_->WorldLinearVel().Z();
-  std::cout << "World velocity: " << base_linear_vel_act_.transpose() << std::endl;
+  // std::cout << "World velocity: " << base_linear_vel_act_.transpose() << std::endl;
 
   // Confirm whether you need absolute angular velocity(in world frame) or relative angular velocity(in local frame)
   // WorldAngularVel = RotMat * RelativeAngularVel <==> RotMat.transpose() * WorldAngularVel = RelativeAngularVel
