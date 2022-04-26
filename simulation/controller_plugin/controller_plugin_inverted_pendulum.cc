@@ -160,7 +160,8 @@ void WorldControllerPlugin::OnUpdateEnd() {
       qd(6 + i) = qd_act_[i];
     }
     rbdl_math::VectorNd qdd_task = rbdl_math::VectorNd::Zero(11);
-    qdd_task(0) = 1 * (base_linear_vel_des_.x() - base_angular_vel_act_.x());
+    qdd_task(0) = 10.0 * (base_linear_vel_des_.x() - base_linear_vel_act_.x());
+    std::cout << "base vel cmd: " << base_linear_vel_des_.x() << ",act: " << base_linear_vel_act_.x() << std::endl;
 
     rbdl_math::VectorNd torque_command(kNumJoints);
     oatmeal_->RunController(q, qd, qdd_task, torque_command);

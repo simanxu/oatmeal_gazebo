@@ -18,26 +18,19 @@ OatmealController::OatmealController() {
 
 OatmealController::~OatmealController() {}
 
-bool OatmealController::Test() {
-  // std::cout << "Hello Test" << std::endl;
-  return true;
-}
-
 void OatmealController::RunController(const rbdl_math::VectorNd& q, const rbdl_math::VectorNd& qd,
                                       const rbdl_math::VectorNd& qdd_task, rbdl_math::VectorNd& torque_command) {
   torque_command.setZero();
   this->UpdateMassMatrixCRBA(q);
   this->UpdateNonlinearBiasRNEA(q, qd);
   this->UpdateWheelContactJacobian(q, qd);
-  // this->UpdateWheelContactJacobianByContactPoint(q, qd);
   torque_command = this->CalculateDynamicWithConstraints(q, qd, qdd_task);
 }
 
 rbdl_math::VectorNd OatmealController::CalculateInverseDynamic(const rbdl_math::VectorNd& q,
                                                                const rbdl_math::VectorNd& qd,
                                                                const rbdl_math::VectorNd& qdd_des) {
-  rbdl_math::VectorNd tau(robot_dof_);
-  // Update constraints Jacobian
+  rbdl_math::VectorNd tau = rbdl_math::VectorNd::Zero(robot_dof_);
   rbdl::InverseDynamics(*robot_, q, qd, qdd_des, tau);
   return tau;
 }
@@ -47,7 +40,7 @@ rbdl_math::VectorNd OatmealController::CalculateDynamicWithConstraints(const rbd
                                                                        const rbdl_math::VectorNd& qdd_task) {
   rbdl_math::VectorNd tau = Eigen::VectorXd::Zero(kNumJoints);
   const int kNumVariables = kNumJoints + kNumConstraintDimsPerWheel * kNumWheels;
-  const int kNumConstraints = 0;  // Friction cone
+  const int kNumConstraints = 8;
   qpOASES::QProblem wbc_qp = qpOASES::QProblem(kNumVariables, kNumConstraints);
   qpOASES::Options options;
   options.printLevel = qpOASES::PL_NONE;
@@ -55,7 +48,6 @@ rbdl_math::VectorNd OatmealController::CalculateDynamicWithConstraints(const rbd
   options.enableEqualities = qpOASES::BT_TRUE;
   options.enableRegularisation = qpOASES::BT_TRUE;
   wbc_qp.setOptions(options);
-  // std::cout << "init qp problem pass" << std::endl;
 
   // calculate qdd_des based on J * qdd + Jd * qd = 0
   Eigen::VectorXd qdd_float_base = qdd_task.head(kSixDims);
@@ -63,58 +55,62 @@ rbdl_math::VectorNd OatmealController::CalculateDynamicWithConstraints(const rbd
   Eigen::VectorXd contact_partial_acc =
       contact_task_acc - ContactJacobianDotQDot_ - ContactJacobian_.leftCols(kSixDims) * qdd_float_base;
 
-  // std::cout << "J:\n" << ContactJacobian_ << std::endl;
-  // std::cout << "qdd_task: " << qdd_task.transpose() << std::endl;
-  // std::cout << "JDQD: " << ContactJacobianDotQDot_.transpose() << std::endl;
-
   Eigen::MatrixXd contact_partial_Jacobian = ContactJacobian_.rightCols(kNumJoints);
   Eigen::MatrixXd contact_partial_Jacobian_pinv = math::PseudoinverseSvd(contact_partial_Jacobian);
   Eigen::VectorXd qdd_des(robot_dof_);
   qdd_des.head(kSixDims) = qdd_float_base;
   qdd_des.tail(kNumJoints) = contact_partial_Jacobian_pinv * contact_partial_acc;
-  // std::cout << "8x1: " << contact_partial_acc.transpose() << std::endl;
-  // std::cout << "5x8:\n" << contact_partial_Jacobian_pinv.transpose() << std::endl;
-  // std::cout << "calculate qdd_des pass" << std::endl;
-  // std::cout << qdd_des.transpose() << std::endl;
 
   // init equality Ax = B
   Eigen::MatrixXd A(robot_dof_, kNumVariables);
   A.leftCols(kNumJoints) = S_.transpose();
   A.rightCols(kNumConstraintDimsPerWheel * kNumWheels) = ContactJacobian_.transpose();
   Eigen::VectorXd B = H_ * qdd_des + C_ + G_;
-  // std::cout << "init A, B pass" << std::endl;
 
   // init Hessian(H) and gradient(G), Ax = B
-  Eigen::Matrix<double, kNumVariables, kNumVariables, Eigen::RowMajor> H = A.transpose() * A;
+  Eigen::Matrix<double, kNumVariables, kNumVariables, Eigen::RowMajor> Penalty;
+  Penalty.setZero();
+  Penalty.block(0, 0, kNumJoints, kNumJoints).setIdentity();
+  Eigen::Matrix<double, kNumVariables, kNumVariables, Eigen::RowMajor> H;
+  H = A.transpose() * A + Penalty;
   Eigen::VectorXd G = -A.transpose() * B;
   Eigen::VectorXd wbc_solve = Eigen::VectorXd::Zero(kNumVariables);
-  int nWSR = 10000;
+
+  // init friction cone constraints and boundary constraints
+  Eigen::Matrix<double, kNumConstraints, kNumVariables, Eigen::RowMajor> Ac;
+  Ac.setZero();
+  Eigen::VectorXd lbc = Eigen::VectorXd::Zero(kNumConstraints);
+  Eigen::VectorXd ubc = Eigen::VectorXd::Constant(kNumConstraints, 1e8);
   Eigen::VectorXd lbx(kNumVariables);
   Eigen::VectorXd ubx(kNumVariables);
   lbx.segment(0, kNumJoints).array() = -30.0;
   ubx.segment(0, kNumJoints).array() = 30.0;
   for (int i = 0; i < kNumWheels; ++i) {
-    lbx(kNumJoints + i * kNumConstraintDimsPerWheel) = -50.0;    // Contact force X
-    lbx(kNumJoints + i * kNumConstraintDimsPerWheel + 1) = 0.0;  // Contact force Z
+    int cst_left_id = i * kNumConstraintDimsPerWheel;
+    int cst_right_id = i * kNumConstraintDimsPerWheel + 1;
+    int fx_id = kNumJoints + i * kNumConstraintDimsPerWheel;
+    int fz_id = kNumJoints + i * kNumConstraintDimsPerWheel + 1;
 
-    ubx(kNumJoints + i * kNumConstraintDimsPerWheel) = 50.0;       // Contact force X
-    ubx(kNumJoints + i * kNumConstraintDimsPerWheel + 1) = 500.0;  // Contact force Z
+    Ac(cst_left_id, fx_id) = 1.0;              // Fx + uFz > 0
+    Ac(cst_left_id, fz_id) = kFrictionCoefs;   // Fx + uFz > 0
+    Ac(cst_right_id, fx_id) = -1.0;            // -Fx + uFz > 0
+    Ac(cst_right_id, fz_id) = kFrictionCoefs;  // -Fx + uFz > 0
+
+    lbx(fx_id) = -50.0;  // Contact force X
+    lbx(fz_id) = 0.0;    // Contact force Z
+    ubx(fx_id) = 50.0;   // Contact force X
+    ubx(fz_id) = 500.0;  // Contact force Z
   }
-  // std::cout << "lower and upper bound of variables pass" << std::endl;
 
-  // init friction constraints
-
-  qpOASES::returnValue init_exit =
-      wbc_qp.init(H.data(), G.data(), 0, lbx.data(), ubx.data(), 0, 0, nWSR, 0, wbc_solve.data(), 0);
+  int nWSR = 10000;
+  qpOASES::returnValue init_exit = wbc_qp.init(H.data(), G.data(), Ac.data(), lbx.data(), ubx.data(), lbc.data(),
+                                               ubc.data(), nWSR, 0, wbc_solve.data(), 0);
   qpOASES::returnValue solve_exit = wbc_qp.getPrimalSolution(wbc_solve.data());
-  double objVal = wbc_qp.getObjVal();
   if (init_exit == qpOASES::SUCCESSFUL_RETURN && solve_exit == qpOASES::SUCCESSFUL_RETURN) {
     tau = wbc_solve.head(kNumJoints);
-    // double whole_mass = 5.0 + 0.5 + 0.05 * 4;
-    // std::cout << "wbc qp: " << nWSR << " " << objVal << " " << whole_mass * kGravity << std::endl;
-    // std::cout << "joint torque: " << wbc_solve.head(kNumJoints).transpose() << std::endl;
-    // std::cout << "ground froce: " << wbc_solve.tail(kNumConstraintDimsPerWheel * kNumWheels).transpose() <<
-    // std::endl;
+    std::cout << "WBC: " << nWSR << " " << (A * wbc_solve - B).norm() << std::endl;
+    std::cout << "Joint torque: " << wbc_solve.head(kNumJoints).transpose() << std::endl;
+    std::cout << "Ground froce: " << wbc_solve.tail(kNumConstraintDimsPerWheel * kNumWheels).transpose() << std::endl;
   } else {
     fprintf(stderr, "Solve wbc problem failed, error code %d, %d.\n", init_exit, solve_exit);
   }
@@ -137,12 +133,12 @@ void OatmealController::UpdateMassMatrixCRBA(const rbdl_math::VectorNd& q) {
 // Calculate Nonlinear Matrix using Recursive Newton-Euler Algorithm(RNEA)
 // Calculate Gravity first and Nonlinear Effect - Gravity = Coriolis
 void OatmealController::UpdateNonlinearBiasRNEA(const rbdl_math::VectorNd& q, const rbdl_math::VectorNd& qd) {
-  rbdl::UpdateKinematicsCustom(*robot_, &q, &qd, NULL);
+  rbdl_math::VectorNd vec_zero = rbdl_math::VectorNd::Zero(robot_dof_);
+  rbdl::UpdateKinematicsCustom(*robot_, &q, &qd, &vec_zero);
+  G_.setZero();
+  rbdl::NonlinearEffects(*robot_, q, vec_zero, G_);
   D_.setZero();
   rbdl::NonlinearEffects(*robot_, q, qd, D_);
-  rbdl_math::VectorNd qd_zero = rbdl_math::VectorNd::Zero(robot_dof_);
-  G_.setZero();
-  rbdl::NonlinearEffects(*robot_, q, qd_zero, G_);
   C_ = D_ - G_;
   // std::cout << "Update nonlinear bias C, G pass" << std::endl;
 }
@@ -186,18 +182,18 @@ void OatmealController::UpdateWheelContactJacobian(const rbdl_math::VectorNd& q,
     rbdl_math::Vector3d JacobianContactDotQDot =
         JacobianWheelDotQDot6D.bottomRows(kThreeDims) + skew_OmegaWheel * skew_OmegaWheel * rwc;
 
-    int nrows = (wheel - 1) * kNumConstraintDimsPerWheel;
+    int nrows = wheel_index_[wheel] * kNumConstraintDimsPerWheel;
     ContactJacobian_.row(nrows) = JacobianContact.row(0);             // x
     ContactJacobian_.row(nrows + 1) = JacobianContact.row(2);         // z
     ContactJacobianDotQDot_(nrows) = JacobianContactDotQDot.x();      // x
     ContactJacobianDotQDot_(nrows + 1) = JacobianContactDotQDot.z();  // z
   }
-  // std::cout << "Update contact Jacobian matrix J pass" << std::endl;
   // auto toc = std::chrono::system_clock::now();
   // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(toc - tic);
   // double time = static_cast<double>(duration.count() * 1000) * std::chrono::microseconds::period::num /
   //               std::chrono::microseconds::period::den;
   // std::cout << "Time consume through wheel Jacobian: " << time << std::endl;
+  // std::cout << "Update contact Jacobian matrix J pass" << std::endl;
 }
 
 // Computational time for four wheels 1.35ms
@@ -206,7 +202,7 @@ void OatmealController::UpdateWheelContactJacobianByContactPoint(const rbdl_math
   // auto tic = std::chrono::system_clock::now();
   for (unsigned int wheel : {kWheelFR, kWheelFL, kWheelHR, kWheelHL}) {
     // Calculate contact point position wrt wheel cooridinate
-    double theta = q(wheel + 5);
+    double theta = q(wheel_index_[wheel] + 6);
     rbdl_math::Vector3d contact_point(kWheelRadius * std::sin(theta), 0.0, -kWheelRadius * std::cos(theta));
 
     // Calculate Jacobian of the contact point of the wheel
@@ -220,22 +216,18 @@ void OatmealController::UpdateWheelContactJacobianByContactPoint(const rbdl_math
     JacobianWheelDotQDot6D = rbdl::CalcPointAcceleration6D(*robot_, q, qd, qdd_zero, link_id, contact_point);
     rbdl_math::Vector3d JacobianContactDotQDot = JacobianWheelDotQDot6D.tail(kThreeDims);
 
-    int nrows = (wheel - 1) * kNumConstraintDimsPerWheel;
-    // std::cout << "Error: " << (JacobianContact.row(0) - ContactJacobian_.row(nrows)).norm() << " "
-    //           << (JacobianContact.row(2) - ContactJacobian_.row(nrows + 1)).norm() << " "
-    //           << JacobianContactDotQDot.x() - ContactJacobianDotQDot_(nrows) << " "
-    //           << JacobianContactDotQDot.z() - ContactJacobianDotQDot_(nrows + 1) << std::endl;
+    int nrows = wheel_index_[wheel] * kNumConstraintDimsPerWheel;
     ContactJacobian_.row(nrows) = JacobianContact.row(0);             // x
     ContactJacobian_.row(nrows + 1) = JacobianContact.row(2);         // z
     ContactJacobianDotQDot_(nrows) = JacobianContactDotQDot.x();      // x
     ContactJacobianDotQDot_(nrows + 1) = JacobianContactDotQDot.z();  // z
   }
-  // std::cout << "Update contact Jacobian matrix J pass" << std::endl;
   // auto toc = std::chrono::system_clock::now();
   // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(toc - tic);
   // double time = static_cast<double>(duration.count() * 1000) * std::chrono::microseconds::period::num /
   //               std::chrono::microseconds::period::den;
   // std::cout << "Time consume by contact point: " << time << std::endl;
+  // std::cout << "Update contact Jacobian matrix J pass" << std::endl;
 }
 
 bool OatmealController::InitDynamicModel() {
@@ -271,6 +263,12 @@ bool OatmealController::InitDynamicModel() {
   link_name_.insert(std::pair<int, std::string>(kWheelHR, "WheelHR"));
   link_name_.insert(std::pair<int, std::string>(kWheelHL, "WheelHL"));
   link_name_.insert(std::pair<int, std::string>(kPendulum, "Pendulum"));
+
+  wheel_index_.insert(std::pair<int, int>(kWheelFR, 0));
+  wheel_index_.insert(std::pair<int, int>(kWheelFL, 1));
+  wheel_index_.insert(std::pair<int, int>(kWheelHR, 2));
+  wheel_index_.insert(std::pair<int, int>(kWheelHL, 3));
+
   link_id[kBody] = robot_->AddBody(0, flotaing_2_body, float_joint, body_link, link_name_[kBody]);
   link_id[kWheelFR] = robot_->AddBody(link_id[kBody], body_2_fr_wheel, ry_joint, wheel_fr_link, link_name_[kWheelFR]);
   link_id[kWheelFL] = robot_->AddBody(link_id[kBody], body_2_fl_wheel, ry_joint, wheel_fl_link, link_name_[kWheelFL]);
@@ -288,7 +286,7 @@ bool OatmealController::InitDynamicMatrix() {
   D_.setZero(robot_dof_);
   C_.setZero(robot_dof_);
   G_.setZero(robot_dof_);
-  q_.setZero(robot_dof_ + 1);
+  q_.setZero(robot_->q_size);
   qd_.setZero(robot_dof_);
   qdd_.setZero(robot_dof_);
   ContactJacobian_.setZero(kNumConstraintDimsPerWheel * kNumWheels, robot_dof_);

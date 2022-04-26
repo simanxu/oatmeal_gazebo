@@ -20,6 +20,7 @@ constexpr int kNumJoints = 5;
 // 2: J * qd = 0 (x,z)
 // 2: Jd* qd + J * qdd = 0 (x,z)
 constexpr int kNumConstraintDimsPerWheel = 2;
+constexpr double kFrictionCoefs = 0.5;
 constexpr double kWheelRadius = 0.051;
 constexpr double kGravity = 9.81;
 constexpr double kBodyFrontLength = 0.095;
@@ -41,8 +42,6 @@ class OatmealController {
 
   ~OatmealController();
 
-  bool Test();
-
   void RunController(const rbdl_math::VectorNd& q, const rbdl_math::VectorNd& qd, const rbdl_math::VectorNd& qdd_des,
                      rbdl_math::VectorNd& torque_command);
 
@@ -54,6 +53,8 @@ class OatmealController {
 
   rbdl_math::VectorNd CalculateDynamicWithConstraints(const rbdl_math::VectorNd& q, const rbdl_math::VectorNd& qd,
                                                       const rbdl_math::VectorNd& qdd_task);
+
+  void UpdateRobotStatus();
 
   void UpdateMassMatrixCRBA(const rbdl_math::VectorNd& q);
   void UpdateNonlinearBiasRNEA(const rbdl_math::VectorNd& q, const rbdl_math::VectorNd& qd);
@@ -67,6 +68,7 @@ class OatmealController {
 
  private:
   std::unique_ptr<rbdl::Model> robot_;
+  std::map<int, int> wheel_index_;
   std::map<int, std::string> link_name_;
   int robot_dof_;
   rbdl_math::MatrixNd S_;
