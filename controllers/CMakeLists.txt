@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 17)
 
 add_library(oatmeal_controller SHARED
+  src/oatmeal_planner.cc
   src/oatmeal_controller.cc
 )
 
