@@ -1,19 +1,19 @@
-#ifndef OATMEAL_GAZEBO_CONTROLLERS_SRC_OATMEAL_PLANNER_H_
-#define OATMEAL_GAZEBO_CONTROLLERS_SRC_OATMEAL_PLANNER_H_
+#ifndef OATMEAL_GAZEBO_CONTROLLERS_OATMEAL_PLANNER_H_
+#define OATMEAL_GAZEBO_CONTROLLERS_OATMEAL_PLANNER_H_
 
 #include "third_party/eigen/Eigen/Dense"
 #include "third_party/psopt/include/psopt.h"
 #include "third_party/qpOASES/include/qpOASES.hpp"
 #include "third_party/rbdl/include/rbdl/rbdl.h"
 
-// TODO
-// 1. 手柄指令处理独立到此处
-// 2. 先规划，再控制
+namespace oatmeal {
 
 class OatmealPlanner {
  public:
   OatmealPlanner();
   ~OatmealPlanner();
+
+  void UpdateCommandInput();
 
   bool CarVelocityControlTask();
 
@@ -22,5 +22,6 @@ class OatmealPlanner {
  private:
   /* data */
 };
+}  // namespace oatmeal
 
-#endif  // OATMEAL_GAZEBO_CONTROLLERS_SRC_OATMEAL_PLANNER_H_
+#endif  // OATMEAL_GAZEBO_CONTROLLERS_OATMEAL_PLANNER_H_

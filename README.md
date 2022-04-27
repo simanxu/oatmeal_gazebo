@@ -1,5 +1,9 @@
 # Oatmeal gazebo simulation
 
+## Robot definition
+Oatmeal in chinese is "小麦片". It is a two-wheeled balance robot that I made for my girlfriend.
+Here oatmeal is the name of the entire project, and the project may contains multiple robots
+
 ## Build
 ```shell
 cd oatmeal_ws/
